@@ -160,13 +160,13 @@ zabbix_export:
                 - |
                   var off = parseFloat(value);
                   var abs = Math.abs(off);
-                  var sign = off < 0 ? '-' : '+';
+                  var sign = off < 0 ? '-' : '';
                   if (abs < 0.000001) {
-                      return sign + (abs * 1e6).toFixed(3) + ' µs';
+                      return sign + (abs * 1e9).toFixed(1) + ' ns';
                   } else if (abs < 0.001) {
                       return sign + (abs * 1e6).toFixed(2) + ' µs';
                   } else if (abs < 1.0) {
-                      return sign + (abs * 1000).toFixed(3) + ' ms';
+                      return sign + (abs * 1000).toFixed(2) + ' ms';
                   } else {
                       return sign + abs.toFixed(3) + ' s';
                   }
@@ -827,41 +827,20 @@ zabbix_export:
                   width: '18'
                   height: '4'
                   fields:
-                    - type: INTEGER
-                      name: decimal_places
-                      value: '6'
                     - type: ITEM
                       name: itemid.0
                       value:
                         host: 'Chrony by Zabbix agent 2 active'
-                        key: chrony.tracking.offset.system
+                        key: chrony.tracking.offset.system.display
                     - type: INTEGER
                       name: show.0
                       value: '2'
                     - type: INTEGER
                       name: value_size
-                      value: '15'
+                      value: '20'
                     - type: STRING
                       name: reference
                       value: AAAEA
-                    - type: STRING
-                      name: thresholds.0.color
-                      value: 0EC9AC
-                    - type: STRING
-                      name: thresholds.0.threshold
-                      value: '0'
-                    - type: STRING
-                      name: thresholds.1.color
-                      value: FFCA28
-                    - type: STRING
-                      name: thresholds.1.threshold
-                      value: '0.05'
-                    - type: STRING
-                      name: thresholds.2.color
-                      value: FF465C
-                    - type: STRING
-                      name: thresholds.2.threshold
-                      value: '0.1'
 
                 - type: item
                   name: 'Reference source IP'

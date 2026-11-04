@@ -228,7 +228,7 @@ The template features a native, modernized multi-page dashboard **Chrony NTP ove
 * **Page 1: Overview**
   ![Zabbix Chrony Overview Dashboard](docs/img/zabbix_dashboard_overview.png)
   * **Modern KPI Value Cards**: Clean, uncluttered value indicators with custom typography and real-time threshold coloring:
-    * `System time offset`: Formatted with 6-decimal precision (`-0.000519 ms`) completely eliminating exponential scientific notation while retaining live status color thresholds (`green` < 50ms, `yellow` >= 50ms, `red` >= 100ms);
+    * `System time offset`: Adaptive human-readable display with automatic unit scaling (`ns`, `µs`, `ms`, `s`) — eliminates awkward multi-zero fractions (e.g. `149.0 ns` instead of `0.000149ms`);
     * `Reference source IP`: Full non-truncated IPv4 address display with generous horizontal margin;
     * `Stratum`: Integer formatting (`3` instead of `3.00`) with color-coded health thresholds (`green` 1–3, `yellow` 4–9, `red` 16);
     * `Leap status`: Clean status label (`Normal`, `Insert second`, `Not synchronised`) without clipping or truncated text.
