@@ -1,17 +1,17 @@
 zabbix_export:
   version: '7.0'
   template_groups:
-    - uuid: b6f9c7cb3e115345a2a1a92971f51baf
+    - uuid: a571c0d144b14fd4a87a9d9b2aa9fcd6
       name: Templates/Applications
   templates:
-    - uuid: 7f8117f046f452fcb9d4513d3f585a15
+    - uuid: 7f8117f046f442fcb9d4513d3f585a15
       template: 'Chrony by Zabbix agent 2'
       name: 'Chrony by Zabbix agent 2'
       description: 'Production-grade Chrony NTP client monitoring for Zabbix Agent 2 (Passive checks).\nFeatures zero external shell scripts, single CSV master item polling, and low-level discovery (LLD) of NTP sources.'
       groups:
         - name: Templates/Applications
       items:
-        - uuid: ea7e729273de56ab9ef3cf290a93e177
+        - uuid: ea7e729273de46ab9ef3cf290a93e177
           name: 'Chrony: Service process state'
           key: 'proc.num[chronyd]'
           delay: 1m
@@ -22,7 +22,7 @@ zabbix_export:
             - tag: component
               value: system
           triggers:
-            - uuid: 95af0535c3245734906aa96af54601eb
+            - uuid: 95af0535c3244734906aa96af54601eb
               expression: 'last(/Chrony by Zabbix agent 2/proc.num[chronyd])=0'
               name: 'Chrony: Service process is not running'
               priority: HIGH
@@ -31,7 +31,7 @@ zabbix_export:
                 - tag: scope
                   value: availability
 
-        - uuid: 4da32db6b531592583b643598a6149ae
+        - uuid: 4da32db6b531492583b643598a6149ae
           name: 'Chrony: Tracking raw data'
           key: chrony.tracking
           delay: 1m
@@ -43,7 +43,7 @@ zabbix_export:
             - tag: component
               value: raw
 
-        - uuid: ecfe4be183395745ad673566b5c60db0
+        - uuid: ecfe4be183394745ad673566b5c60db0
           name: 'Chrony: Tracking JSON'
           type: DEPENDENT
           key: chrony.tracking.json
@@ -94,7 +94,7 @@ zabbix_export:
             - tag: component
               value: json
 
-        - uuid: e5be7b495b325d3c8cf665b5af66c792
+        - uuid: e5be7b495b324d3c8cf665b5af66c792
           name: 'Chrony: System time offset'
           type: DEPENDENT
           key: chrony.tracking.offset.system
@@ -113,7 +113,7 @@ zabbix_export:
             - tag: component
               value: ntp
           triggers:
-            - uuid: 7810e31a2cce56048503b3f8c7f4cf8a
+            - uuid: 7810e31a2cce46048503b3f8c7f4cf8a
               expression: 'min(/Chrony by Zabbix agent 2/chrony.tracking.offset.system,3m)>{$CHRONY.OFFSET.WARN} or max(/Chrony by Zabbix agent 2/chrony.tracking.offset.system,3m)<-{$CHRONY.OFFSET.WARN}'
               name: 'Chrony: Clock offset is excessive (> {$CHRONY.OFFSET.WARN}s)'
               priority: WARNING
@@ -124,7 +124,7 @@ zabbix_export:
               tags:
                 - tag: scope
                   value: performance
-            - uuid: 796e95c415c654068a9f9d69ccff1418
+            - uuid: 796e95c415c644068a9f9d69ccff1418
               expression: 'last(/Chrony by Zabbix agent 2/chrony.tracking.offset.system)>{$CHRONY.OFFSET.CRIT} or last(/Chrony by Zabbix agent 2/chrony.tracking.offset.system)<-{$CHRONY.OFFSET.CRIT}'
               name: 'Chrony: Clock offset is critical (> {$CHRONY.OFFSET.CRIT}s)'
               priority: HIGH
@@ -138,7 +138,7 @@ zabbix_export:
                 - tag: scope
                   value: availability
 
-        - uuid: bb9898382a38570f8b74f6e465fa15e9
+        - uuid: bb9898382a38470f8b74f6e465fa15e9
           name: 'Chrony: RMS offset'
           type: DEPENDENT
           key: chrony.tracking.offset.rms
@@ -157,7 +157,7 @@ zabbix_export:
             - tag: component
               value: ntp
 
-        - uuid: 02dad8bc4e5b5158b83a0bbef92a18d6
+        - uuid: 02dad8bc4e5b4158b83a0bbef92a18d6
           name: 'Chrony: Last offset'
           type: DEPENDENT
           key: chrony.tracking.offset.last
@@ -176,7 +176,7 @@ zabbix_export:
             - tag: component
               value: ntp
 
-        - uuid: 3525e8b85d4c58a8b45867048aff8d0d
+        - uuid: 3525e8b85d4c48a8b45867048aff8d0d
           name: 'Chrony: Stratum'
           type: DEPENDENT
           key: chrony.tracking.stratum
@@ -194,7 +194,7 @@ zabbix_export:
             - tag: component
               value: ntp
           triggers:
-            - uuid: caf02167e050581486a66bfe4236bb06
+            - uuid: caf02167e050481486a66bfe4236bb06
               expression: 'last(/Chrony by Zabbix agent 2/chrony.tracking.stratum)=0 or last(/Chrony by Zabbix agent 2/chrony.tracking.stratum)>=16'
               name: 'Chrony: Stratum is invalid (0 or >= 16)'
               priority: HIGH
@@ -206,7 +206,7 @@ zabbix_export:
                 - tag: scope
                   value: availability
 
-        - uuid: 0f7abe06c97d5879a085f82d5f879e85
+        - uuid: 0f7abe06c97d4879a085f82d5f879e85
           name: 'Chrony: Leap status'
           type: DEPENDENT
           key: chrony.tracking.leap_status
@@ -226,7 +226,7 @@ zabbix_export:
             - tag: component
               value: ntp
           triggers:
-            - uuid: 120d89d4b60a57c9bbbbfbc773c93dac
+            - uuid: 120d89d4b60a47c9bbbbfbc773c93dac
               expression: 'last(/Chrony by Zabbix agent 2/chrony.tracking.leap_status)=3'
               name: 'Chrony: Host is not synchronised with NTP'
               priority: HIGH
@@ -238,7 +238,7 @@ zabbix_export:
                 - tag: scope
                   value: availability
 
-        - uuid: dd69c6394a645a65a02da18eafdbda53
+        - uuid: dd69c6394a644a65a02da18eafdbda53
           name: 'Chrony: Root delay'
           type: DEPENDENT
           key: chrony.tracking.root_delay
@@ -257,7 +257,7 @@ zabbix_export:
             - tag: component
               value: ntp
 
-        - uuid: 84de4a2aad3f5800b209979a7f40a28f
+        - uuid: 84de4a2aad3f4800b209979a7f40a28f
           name: 'Chrony: Root dispersion'
           type: DEPENDENT
           key: chrony.tracking.root_dispersion
@@ -276,7 +276,7 @@ zabbix_export:
             - tag: component
               value: ntp
 
-        - uuid: 443656c2369f59db8161871fa4c7ea37
+        - uuid: 443656c2369f49db8161871fa4c7ea37
           name: 'Chrony: Frequency'
           type: DEPENDENT
           key: chrony.tracking.freq_ppm
@@ -295,7 +295,7 @@ zabbix_export:
             - tag: component
               value: ntp
 
-        - uuid: 9523ff9eafbd54f38f616b0a2969bbe3
+        - uuid: 9523ff9eafbd44f38f616b0a2969bbe3
           name: 'Chrony: Residual frequency'
           type: DEPENDENT
           key: chrony.tracking.residual_freq
@@ -314,7 +314,7 @@ zabbix_export:
             - tag: component
               value: ntp
 
-        - uuid: f07aaca69b6857ddbae4d1b1bfc85ca1
+        - uuid: f07aaca69b6847ddbae4d1b1bfc85ca1
           name: 'Chrony: Skew'
           type: DEPENDENT
           key: chrony.tracking.skew_ppm
@@ -333,7 +333,7 @@ zabbix_export:
             - tag: component
               value: ntp
 
-        - uuid: 0d34fb00c07f569881186d6a8f45e7ef
+        - uuid: 0d34fb00c07f469881186d6a8f45e7ef
           name: 'Chrony: Update interval'
           type: DEPENDENT
           key: chrony.tracking.update_interval
@@ -352,7 +352,7 @@ zabbix_export:
             - tag: component
               value: ntp
 
-        - uuid: 92c59b276e705e6e8b4743dac6eb70a1
+        - uuid: 92c59b276e704e6e8b4743dac6eb70a1
           name: 'Chrony: Reference source IP'
           type: DEPENDENT
           key: chrony.tracking.ref_ip
@@ -371,7 +371,7 @@ zabbix_export:
             - tag: component
               value: ntp
 
-        - uuid: 809aad3c64ee52ceb2847faac1cbfff4
+        - uuid: 809aad3c64ee42ceb2847faac1cbfff4
           name: 'Chrony: Sources raw data'
           key: chrony.sources
           delay: 1m
@@ -383,7 +383,7 @@ zabbix_export:
             - tag: component
               value: raw
 
-        - uuid: de236842c99d52a38e6cebb03cce5523
+        - uuid: de236842c99d42a38e6cebb03cce5523
           name: 'Chrony: Sources JSON'
           type: DEPENDENT
           key: chrony.sources.json
@@ -425,7 +425,7 @@ zabbix_export:
             - tag: component
               value: json
 
-        - uuid: 53fbda6782d95e67bf2e8bd0130a5c25
+        - uuid: 53fbda6782d94e67bf2e8bd0130a5c25
           name: 'Chrony: Configured sources count'
           type: DEPENDENT
           key: chrony.sources.count
@@ -445,7 +445,7 @@ zabbix_export:
             - tag: component
               value: ntp
 
-        - uuid: 47fefbdca6bc56be8fcd813e7bf6acbd
+        - uuid: 47fefbdca6bc46be8fcd813e7bf6acbd
           name: 'Chrony: Synchronized sources count'
           type: DEPENDENT
           key: chrony.sources.synced_count
@@ -469,7 +469,7 @@ zabbix_export:
             - tag: component
               value: ntp
           triggers:
-            - uuid: 5fe2ddecfd90570fb842a02d6a023060
+            - uuid: 5fe2ddecfd90470fb842a02d6a023060
               expression: 'last(/Chrony by Zabbix agent 2/chrony.sources.synced_count)<{$CHRONY.SOURCES.MIN.WARN}'
               name: 'Chrony: Low number of synchronized NTP sources (< {$CHRONY.SOURCES.MIN.WARN})'
               priority: WARNING
@@ -483,7 +483,7 @@ zabbix_export:
                   value: notice
 
       discovery_rules:
-        - uuid: 51b99fe835dc5eeb8ba78f9faabdcd26
+        - uuid: 51b99fe835dc4eeb8ba78f9faabdcd26
           name: 'Chrony: NTP sources discovery'
           type: DEPENDENT
           key: chrony.sources.discovery
@@ -505,7 +505,7 @@ zabbix_export:
                   }
                   return JSON.stringify(result);
           item_prototypes:
-            - uuid: fbcce471c90d5c319a4d9ab83570055b
+            - uuid: fbcce471c90d4c319a4d9ab83570055b
               name: 'Chrony: Source [{#SOURCE_NAME}]: State'
               type: DEPENDENT
               key: 'chrony.source.state[{#SOURCE_NAME}]'
@@ -528,7 +528,7 @@ zabbix_export:
                 - tag: source
                   value: '{#SOURCE_NAME}'
               trigger_prototypes:
-                - uuid: dd8cd59e04b351148e690912dd3be1c3
+                - uuid: dd8cd59e04b341148e690912dd3be1c3
                   expression: 'last(/Chrony by Zabbix agent 2/chrony.source.state[{#SOURCE_NAME}])="x"'
                   name: 'Chrony: NTP source [{#SOURCE_NAME}] is flagged as false ticker'
                   priority: WARNING
@@ -537,7 +537,7 @@ zabbix_export:
                     - tag: component
                       value: ntp-source
 
-            - uuid: acbdafa8d1c65fbb9d1300a00d021450
+            - uuid: acbdafa8d1c64fbb9d1300a00d021450
               name: 'Chrony: Source [{#SOURCE_NAME}]: Stratum'
               type: DEPENDENT
               key: 'chrony.source.stratum[{#SOURCE_NAME}]'
@@ -557,7 +557,7 @@ zabbix_export:
                 - tag: source
                   value: '{#SOURCE_NAME}'
 
-            - uuid: 006e38b9a9dd5701adc969d5ce26d414
+            - uuid: 006e38b9a9dd4701adc969d5ce26d414
               name: 'Chrony: Source [{#SOURCE_NAME}]: Reachability register'
               type: DEPENDENT
               key: 'chrony.source.reach[{#SOURCE_NAME}]'
@@ -577,7 +577,7 @@ zabbix_export:
                 - tag: source
                   value: '{#SOURCE_NAME}'
               trigger_prototypes:
-                - uuid: 640485bc227858d094d5e2fec632146e
+                - uuid: 640485bc227848d094d5e2fec632146e
                   expression: 'last(/Chrony by Zabbix agent 2/chrony.source.reach[{#SOURCE_NAME}])=0'
                   name: 'Chrony: NTP source [{#SOURCE_NAME}] is unreachable'
                   priority: INFO
@@ -587,7 +587,7 @@ zabbix_export:
                     - tag: component
                       value: ntp-source
 
-            - uuid: e12cf2fcfb115bed9104a1b6b3e8a70f
+            - uuid: e12cf2fcfb114bed9104a1b6b3e8a70f
               name: 'Chrony: Source [{#SOURCE_NAME}]: Last sample offset'
               type: DEPENDENT
               key: 'chrony.source.offset[{#SOURCE_NAME}]'
@@ -608,7 +608,7 @@ zabbix_export:
                 - tag: source
                   value: '{#SOURCE_NAME}'
 
-            - uuid: 72cdc97e32635ff9992c84e40577508c
+            - uuid: 72cdc97e32634ff9992c84e40577508c
               name: 'Chrony: Source [{#SOURCE_NAME}]: Root distance / delay'
               type: DEPENDENT
               key: 'chrony.source.delay[{#SOURCE_NAME}]'
@@ -629,7 +629,7 @@ zabbix_export:
                 - tag: source
                   value: '{#SOURCE_NAME}'
 
-            - uuid: c695d5848c735366a26718c8821648a7
+            - uuid: c695d5848c734366a26718c8821648a7
               name: 'Chrony: Source [{#SOURCE_NAME}]: Poll interval'
               type: DEPENDENT
               key: 'chrony.source.poll[{#SOURCE_NAME}]'
@@ -650,7 +650,7 @@ zabbix_export:
                   value: '{#SOURCE_NAME}'
 
           graph_prototypes:
-            - uuid: c9e7cc8b809d5004bca208397e9a09b0
+            - uuid: c9e7cc8b809d4004bca208397e9a09b0
               name: 'Chrony: Source [{#SOURCE_NAME}] offset and delay'
               graph_items:
                 - color: 199C0D
@@ -675,7 +675,7 @@ zabbix_export:
           description: 'Minimum required synchronized NTP sources.'
 
       valuemaps:
-        - uuid: 99e5cb4b2b2659219464d934b01d4fd2
+        - uuid: 99e5cb4b2b2649219464d934b01d4fd2
           name: 'Chrony Leap Status'
           mappings:
             - value: '0'
@@ -687,7 +687,7 @@ zabbix_export:
             - value: '3'
               newvalue: 'Not synchronised'
 
-        - uuid: d561bd061a1f564c9e1556d0f31a9530
+        - uuid: d561bd061a1f464c9e1556d0f31a9530
           name: 'Chrony Source State'
           mappings:
             - value: '*'
@@ -703,7 +703,7 @@ zabbix_export:
             - value: '~'
               newvalue: 'Jitter too variable'
 
-        - uuid: 7356f81a40f3548483ca4e399a09acdf
+        - uuid: 7356f81a40f3448483ca4e399a09acdf
           name: 'Chrony Source Mode'
           mappings:
             - value: '^'
@@ -714,7 +714,7 @@ zabbix_export:
               newvalue: 'Reference clock'
 
   graphs:
-    - uuid: 38263fb9c94a5d73827352989d0f6e2a
+    - uuid: 38263fb9c94a4d73827352989d0f6e2a
       name: 'Chrony: System clock offsets'
       graph_items:
         - color: 199C0D
@@ -732,7 +732,7 @@ zabbix_export:
             host: 'Chrony by Zabbix agent 2'
             key: chrony.tracking.offset.last
 
-    - uuid: c90816d3fe2a562493c21c84918320e0
+    - uuid: c90816d3fe2a462493c21c84918320e0
       name: 'Chrony: Root delay and dispersion'
       graph_items:
         - color: 199C0D
@@ -745,7 +745,7 @@ zabbix_export:
             host: 'Chrony by Zabbix agent 2'
             key: chrony.tracking.root_dispersion
 
-    - uuid: 5141dda0e9385fb7bb8de3a39bfff10b
+    - uuid: 5141dda0e9384fb7bb8de3a39bfff10b
       name: 'Chrony: Frequency and skew'
       graph_items:
         - color: 199C0D

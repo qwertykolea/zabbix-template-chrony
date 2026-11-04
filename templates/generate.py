@@ -6,7 +6,11 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 NS = uuid.UUID('c57a9150-5f21-4d1a-9669-7cfa856df931')
 
 def get_uuid(key: str) -> str:
-    return uuid.uuid5(NS, key).hex
+    u = uuid.uuid5(NS, key)
+    b = bytearray(u.bytes)
+    b[6] = (b[6] & 0x0f) | 0x40  # Force UUID version 4
+    b[8] = (b[8] & 0x3f) | 0x80  # Force RFC 4122 variant
+    return uuid.UUID(bytes=bytes(b)).hex
 
 def generate_yaml(active: bool = False) -> str:
     mode = "active" if active else "passive"
@@ -22,7 +26,7 @@ def generate_yaml(active: bool = False) -> str:
     proc_item_type = "\n          type: ZABBIX_ACTIVE" if active else ""
 
     tpl_uuid = get_uuid(f"template:{mode}")
-    group_uuid = get_uuid("group:Applications")
+    group_uuid = "a571c0d144b14fd4a87a9d9b2aa9fcd6"
 
     # JS Code snippets with exact indentation
     js_tracking = """                  var p = value.trim().split(',');
