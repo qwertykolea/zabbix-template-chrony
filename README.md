@@ -1,0 +1,1 @@
+# Zabbix-chrony-agent2-suite-template
