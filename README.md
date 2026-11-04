@@ -182,6 +182,7 @@ You can override thresholds at the template level or per-host level:
 The template features a native, modernized multi-page dashboard **Chrony NTP overview**, accessible directly in Zabbix host dashboards:
 
 * **Page 1: Overview**
+  ![Zabbix Chrony Overview Dashboard](docs/img/zabbix_dashboard_overview.png)
   * **Modern KPI Value Cards**: Clean, uncluttered value indicators with custom typography and real-time threshold coloring:
     * `System time offset`: Formatted with 6-decimal precision (`-0.000519 ms`) completely eliminating exponential scientific notation while retaining live status color thresholds (`green` < 50ms, `yellow` >= 50ms, `red` >= 100ms);
     * `Reference source IP`: Full non-truncated IPv4 address display with generous horizontal margin;
@@ -194,6 +195,7 @@ The template features a native, modernized multi-page dashboard **Chrony NTP ove
   * **Discovered NTP Sources Grid**: 2-column, 3-row prototype graphs displaying offset, delay, and margin of error for up to 6 discovered peers.
 
 * **Page 2: NTP Sources (Peers)**
+  ![Zabbix Chrony NTP Sources Dashboard](docs/img/zabbix_dashboard_sources.png)
   * Dedicated multi-peer analysis tab configured with a generous 6-row × 2-column layout (up to 12 simultaneous peer graphs without pagination) and 24-unit height, ensuring all upstream servers are rendered simultaneously and synchronized with the dashboard time period selector (`DASHBOARD._timeperiod`). Each graph tracks **Offset** (Green), **Delay** (Red), and **Margin of error** (Blue).
 
 ### 2. Standalone Grafana Dashboard
