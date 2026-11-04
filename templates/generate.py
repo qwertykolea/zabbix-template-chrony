@@ -736,9 +736,6 @@ def generate_yaml(active: bool = False) -> str:
                   width: '18'
                   height: '4'
                   fields:
-                    - type: INTEGER
-                      name: decimal_places
-                      value: '4'
                     - type: ITEM
                       name: itemid.0
                       value:
@@ -749,7 +746,7 @@ def generate_yaml(active: bool = False) -> str:
                       value: '2'
                     - type: INTEGER
                       name: value_size
-                      value: '38'
+                      value: '20'
                     - type: STRING
                       name: reference
                       value: AAAEA
@@ -788,7 +785,7 @@ def generate_yaml(active: bool = False) -> str:
                       value: '2'
                     - type: INTEGER
                       name: value_size
-                      value: '26'
+                      value: '18'
                     - type: STRING
                       name: reference
                       value: AAAEB
@@ -811,8 +808,11 @@ def generate_yaml(active: bool = False) -> str:
                       name: show.0
                       value: '2'
                     - type: INTEGER
+                      name: units_show
+                      value: '0'
+                    - type: INTEGER
                       name: value_size
-                      value: '45'
+                      value: '26'
                     - type: STRING
                       name: reference
                       value: AAAEC
@@ -841,6 +841,9 @@ def generate_yaml(active: bool = False) -> str:
                   width: '18'
                   height: '4'
                   fields:
+                    - type: INTEGER
+                      name: decimal_places
+                      value: '0'
                     - type: ITEM
                       name: itemid.0
                       value:
@@ -850,8 +853,11 @@ def generate_yaml(active: bool = False) -> str:
                       name: show.0
                       value: '2'
                     - type: INTEGER
+                      name: units_show
+                      value: '0'
+                    - type: INTEGER
                       name: value_size
-                      value: '35'
+                      value: '18'
                     - type: STRING
                       name: reference
                       value: AAAED
