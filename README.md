@@ -1,11 +1,11 @@
-# Zabbix Chrony NTP Monitoring Suite (Zabbix 7.0 LTS / 7.4+)
+# Zabbix Chrony NTP Monitoring Template (`zabbix-template-chrony`)
 
 [🇬🇧 Read in English](README.md) | [🇷🇺 Читать на русском](README_RU.md)
 
 [![Zabbix](https://img.shields.io/badge/Zabbix-7.0%20LTS%20%7C%207.4%2B-red?logo=zabbix)](https://www.zabbix.com/)
 [![Chrony](https://img.shields.io/badge/NTP-Chrony-blue)](https://chrony-project.org/)
 [![Agent](https://img.shields.io/badge/Agent-Zabbix%20Agent%202-green)](https://www.zabbix.com/documentation/current/en/manual/concepts/agent2)
-[![GitHub Repository](https://img.shields.io/badge/GitHub-qwertykolea%2FZabbix--chrony--agent2--suite--template-181717?logo=github)](https://github.com/qwertykolea/Zabbix-chrony-agent2-suite-template)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-qwertykolea%2Fzabbix--template--chrony-181717?logo=github)](https://github.com/qwertykolea/zabbix-template-chrony)
 
 A production-grade, highly efficient Chrony NTP client monitoring suite designed for **Zabbix Agent 2** and compliant with official Zabbix 7.4 standards.
 
@@ -30,7 +30,7 @@ Features the **Master + Dependent Items** pattern, raw CSV output parsing via na
 ## 📁 Repository Structure
 
 ```text
-Zabbix-chrony-agent2-suite-template/
+zabbix-template-chrony/
 ├── README.md                                 # English Documentation
 ├── README_RU.md                              # Russian Documentation
 ├── agent2_conf/
@@ -58,14 +58,14 @@ Zabbix-chrony-agent2-suite-template/
 Run directly on your target Linux host:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/qwertykolea/Zabbix-chrony-agent2-suite-template/main/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/qwertykolea/zabbix-template-chrony/main/deploy/install.sh | sudo bash
 ```
 
 ### Option 2: Run Locally from Cloned Repository
 
 ```bash
-git clone https://github.com/qwertykolea/Zabbix-chrony-agent2-suite-template.git
-cd Zabbix-chrony-agent2-suite-template/deploy
+git clone https://github.com/qwertykolea/zabbix-template-chrony.git
+cd zabbix-template-chrony/deploy
 sudo chmod +x install.sh
 sudo ./install.sh
 ```
@@ -194,5 +194,5 @@ If `zabbix_agent2 -t chrony.tracking` returns an error or empty string:
 To cleanly remove the configuration from a host:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/qwertykolea/Zabbix-chrony-agent2-suite-template/main/deploy/uninstall.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/qwertykolea/zabbix-template-chrony/main/deploy/uninstall.sh | sudo bash
 ```

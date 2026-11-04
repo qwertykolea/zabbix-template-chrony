@@ -1,11 +1,11 @@
-# Zabbix Chrony NTP Monitoring Suite (Zabbix 7.0 LTS / 7.4+)
+# Zabbix Chrony NTP Monitoring Template (`zabbix-template-chrony`)
 
 [🇬🇧 Read in English](README.md) | [🇷🇺 Читать на русском](README_RU.md)
 
 [![Zabbix](https://img.shields.io/badge/Zabbix-7.0%20LTS%20%7C%207.4%2B-red?logo=zabbix)](https://www.zabbix.com/)
 [![Chrony](https://img.shields.io/badge/NTP-Chrony-blue)](https://chrony-project.org/)
 [![Agent](https://img.shields.io/badge/Agent-Zabbix%20Agent%202-green)](https://www.zabbix.com/documentation/current/en/manual/concepts/agent2)
-[![GitHub Repository](https://img.shields.io/badge/GitHub-qwertykolea%2FZabbix--chrony--agent2--suite--template-181717?logo=github)](https://github.com/qwertykolea/Zabbix-chrony-agent2-suite-template)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-qwertykolea%2Fzabbix--template--chrony-181717?logo=github)](https://github.com/qwertykolea/zabbix-template-chrony)
 
 Профессиональный production-ready комплекс для мониторинга клиента NTP (`chrony`) с помощью **Zabbix Agent 2**.
 
@@ -30,7 +30,7 @@
 ## 📁 Структура проекта
 
 ```text
-Zabbix-chrony-agent2-suite-template/
+zabbix-template-chrony/
 ├── README.md                                 # Английская документация
 ├── README_RU.md                              # Русская документация
 ├── agent2_conf/
@@ -56,14 +56,14 @@ Zabbix-chrony-agent2-suite-template/
 ### Вариант 1: Однострочная онлайн-установка с GitHub (Рекомендуется)
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/qwertykolea/Zabbix-chrony-agent2-suite-template/main/deploy/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/qwertykolea/zabbix-template-chrony/main/deploy/install.sh | sudo bash
 ```
 
 ### Вариант 2: Локальный запуск из клонированного репозитория
 
 ```bash
-git clone https://github.com/qwertykolea/Zabbix-chrony-agent2-suite-template.git
-cd Zabbix-chrony-agent2-suite-template/deploy
+git clone https://github.com/qwertykolea/zabbix-template-chrony.git
+cd zabbix-template-chrony/deploy
 sudo chmod +x install.sh
 sudo ./install.sh
 ```
@@ -192,5 +192,5 @@ Zabbix автоматически обнаруживает каждый апст
 Для полного удаления конфигурации с хоста:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/qwertykolea/Zabbix-chrony-agent2-suite-template/main/deploy/uninstall.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/qwertykolea/zabbix-template-chrony/main/deploy/uninstall.sh | sudo bash
 ```
