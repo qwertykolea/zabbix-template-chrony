@@ -1,4 +1,7 @@
+import os
 import uuid
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 NS = uuid.UUID('c57a9150-5f21-4d1a-9669-7cfa856df931')
 
@@ -759,11 +762,11 @@ def generate_yaml(active: bool = False) -> str:
     return out
 
 # Generate passive
-with open('d:/!Antigravity/zabbix-chrony/zabbix-chrony-agent2-suite/templates/template_chrony_agent2_passive.yaml', 'w', encoding='utf-8') as f:
+with open(os.path.join(SCRIPT_DIR, 'template_chrony_agent2_passive.yaml'), 'w', encoding='utf-8') as f:
     f.write(generate_yaml(active=False))
 
 # Generate active
-with open('d:/!Antigravity/zabbix-chrony/zabbix-chrony-agent2-suite/templates/template_chrony_agent2_active.yaml', 'w', encoding='utf-8') as f:
+with open(os.path.join(SCRIPT_DIR, 'template_chrony_agent2_active.yaml'), 'w', encoding='utf-8') as f:
     f.write(generate_yaml(active=True))
 
 print("Both templates generated successfully!")

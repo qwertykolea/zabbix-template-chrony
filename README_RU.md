@@ -1,0 +1,196 @@
+# Zabbix Chrony NTP Monitoring Suite (Zabbix 7.0 LTS / 7.4+)
+
+[🇬🇧 Read in English](README.md) | [🇷🇺 Читать на русском](README_RU.md)
+
+[![Zabbix](https://img.shields.io/badge/Zabbix-7.0%20LTS%20%7C%207.4%2B-red?logo=zabbix)](https://www.zabbix.com/)
+[![Chrony](https://img.shields.io/badge/NTP-Chrony-blue)](https://chrony-project.org/)
+[![Agent](https://img.shields.io/badge/Agent-Zabbix%20Agent%202-green)](https://www.zabbix.com/documentation/current/en/manual/concepts/agent2)
+[![GitHub Repository](https://img.shields.io/badge/GitHub-qwertykolea%2FZabbix--chrony--agent2--suite--template-181717?logo=github)](https://github.com/qwertykolea/Zabbix-chrony-agent2-suite-template)
+
+Профессиональный production-ready комплекс для мониторинга клиента NTP (`chrony`) с помощью **Zabbix Agent 2**.
+
+Разработано в соответствии с официальными стандартами Zabbix 7.4: архитектура **Master + Dependent Items**, парсинг сырых CSV данных через нативный Preprocessing, низкоуровневое обнаружение источников времени (LLD), отсутствие внешних bash-скриптов и нулевая нагрузка на серверы.
+
+---
+
+## 🚀 Ключевые преимущества
+
+| Характеристика | Данное решение (Suite) | Типовые шаблоны из интернета |
+| :--- | :--- | :--- |
+| **Количество вызовов `chronyc`** | **Всего 2 запроса в минуту** (`tracking` и `sources`) | 10–15 разрозненных вызовов каждую минуту |
+| **Внешние bash-скрипты** | **0 (Zero-script)**. Только 1 файл `.conf` в агенте | 2-3 bash/awk/sed скрипта в `/usr/local/bin` |
+| **Зависимость от локали ОС** | **Нет**. Используется флаг `-c` (чистый CSV) | **Высокая** (парсинг английских слов через `awk`) |
+| **Поддержка чистых клиентов** | **100%**. Не требует открытия портов и слушателей | Падает с ошибкой, требуя сокета сервера и клиентов |
+| **Режимы работы** | **2 шаблона в комплекте**: Passive и Active | Только один жестко заданный режим |
+| **Обнаружение источников (LLD)** | **Автоматическое (LLD)** для каждого апстрима | Нет или статичный сбор |
+| **Триггеры и алертинг** | Многоуровневые с защитой от флуда при рестарте | Отсутствуют либо базовые |
+
+---
+
+## 📁 Структура проекта
+
+```text
+Zabbix-chrony-agent2-suite-template/
+├── README.md                                 # Английская документация
+├── README_RU.md                              # Русская документация
+├── agent2_conf/
+│   └── chrony.conf                           # Конфигурация UserParameter для агента
+├── templates/
+│   ├── template_chrony_agent2_passive.yaml   # Шаблон для пассивного агента (Zabbix agent)
+│   ├── template_chrony_agent2_active.yaml    # Шаблон для активного агента (Zabbix agent active)
+│   └── generate.py                           # Детерминированный генератор шаблонов
+└── deploy/
+    ├── install.sh                            # Скрипт автоматической установки на Linux
+    ├── uninstall.sh                          # Скрипт чистого удаления
+    └── ansible/                              # Автоматизация для парка серверов
+        ├── playbook.yml                      # Ansible playbook
+        ├── inventory.ini.example             # Пример инвентаря
+        ├── README.md                         # Инструкция к Ansible (EN)
+        └── README_RU.md                      # Инструкция к Ansible (RU)
+```
+
+---
+
+## ⚡ Быстрый старт (Установка на Linux-хост)
+
+### Вариант 1: Однострочная онлайн-установка с GitHub (Рекомендуется)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/qwertykolea/Zabbix-chrony-agent2-suite-template/main/deploy/install.sh | sudo bash
+```
+
+### Вариант 2: Локальный запуск из клонированного репозитория
+
+```bash
+git clone https://github.com/qwertykolea/Zabbix-chrony-agent2-suite-template.git
+cd Zabbix-chrony-agent2-suite-template/deploy
+sudo chmod +x install.sh
+sudo ./install.sh
+```
+
+### Вариант 3: Ручная установка (1 минута)
+
+1. Скопируйте файл конфигурации:
+   ```bash
+   sudo cp agent2_conf/chrony.conf /etc/zabbix/zabbix_agent2.d/chrony.conf
+   sudo chmod 644 /etc/zabbix/zabbix_agent2.d/chrony.conf
+   ```
+
+2. Перезапустите службу агента:
+   ```bash
+   sudo systemctl restart zabbix-agent2
+   ```
+
+3. Проверьте опрос метрик:
+   ```bash
+   zabbix_agent2 -t chrony.tracking
+   zabbix_agent2 -t chrony.sources
+   ```
+
+---
+
+## 🖥️ Настройка в Zabbix Web UI
+
+1. Перейдите в **Data collection** -> **Templates** -> кнопка **Import**.
+2. Выберите подходящий файл из папки `templates/`:
+   * `template_chrony_agent2_passive.yaml` — для серверов, доступных Zabbix-серверу/прокси напрямую по порту 10050.
+   * `template_chrony_agent2_active.yaml` — для серверов за NAT / Firewall, где агент сам инициирует исходящее соединение на 10051 порт.
+3. Привяжите импортированный шаблон к целевым хостам в разделе **Hosts**.
+4. Проверьте поступление данных в **Monitoring** -> **Latest data** (фильтр `Chrony`).
+
+---
+
+## 📊 Состав метрик
+
+### 1. Системные метрики синхронизации (System Tracking)
+* `Chrony: Service process state` — статус процесса `chronyd` (проверяется нативно через `proc.num[chronyd]`).
+* `Chrony: System time offset` — смещение локальных часов относительно эталона в секундах (`s`).
+* `Chrony: RMS offset` — долгосрочное среднеквадратичное отклонение времени (`s`).
+* `Chrony: Last offset` — оценочное отклонение при последнем замере (`s`).
+* `Chrony: Stratum` — текущий стратум источника синхронизации.
+* `Chrony: Leap status` — статус синхронизации и високосной секунды:
+  * `0` — Normal (часы штатно синхронизированы);
+  * `1` — Insert second;
+  * `2` — Delete second;
+  * `3` — Not synchronised (рассинхрон).
+* `Chrony: Root delay` — сетевая задержка до первичного источника Stratum 1 (`s`).
+* `Chrony: Root dispersion` — максимальная расчетная погрешность (`s`).
+* `Chrony: Frequency` — дрейф частоты локального кварцевого генератора (`ppm`).
+* `Chrony: Residual frequency` — остаточная погрешность частоты (`ppm`).
+* `Chrony: Skew` — доверительный интервал погрешности частоты (`ppm`).
+* `Chrony: Reference source IP` — текущий активный сервер времени (IP/ID).
+
+### 2. Сводные метрики источников (Sources Summary)
+* `Chrony: Configured sources count` — общее число настроенных NTP-серверов в пуле.
+* `Chrony: Synchronized sources count` — количество источников в статусе синхронизации (`*` или `+`).
+
+### 3. Низкоуровневое обнаружение источников (LLD)
+Zabbix автоматически обнаруживает каждый апстрим-источник времени и создает персональные элементы данных:
+* `Chrony: Source [{#SOURCE_NAME}]: State` — статус источника (`*` = синхронизирован, `+` = кандидат, `-` = отсеян, `?` = недоступен, `x` = ложный источник / falseticker, `~` = высокая вариативность джиттера).
+* `Chrony: Source [{#SOURCE_NAME}]: Stratum` — стратум конкретного сервера.
+* `Chrony: Source [{#SOURCE_NAME}]: Reachability register` — 8-битный регистр доступности (преобразован из восьмеричной системы в диапазон 0–255: `255` = 100% ответов на последние 8 запросов, `0` = сервер недоступен).
+* `Chrony: Source [{#SOURCE_NAME}]: Last sample offset` — персональное смещение относительно данного источника (`s`).
+* `Chrony: Source [{#SOURCE_NAME}]: Root distance / delay` — сетевая задержка до данного источника (`s`).
+* `Chrony: Source [{#SOURCE_NAME}]: Poll interval` — интервал опроса источника (log2).
+
+---
+
+## 🔔 Матрица триггеров и алертинга
+
+| Важность (Severity) | Название триггера | Условие срабатывания | Описание и зависимости |
+| :--- | :--- | :--- | :--- |
+| **High** | `Chrony: Service process is not running` | `last(proc.num[chronyd])=0` | Служба `chronyd` остановлена или упала. |
+| **High** | `Chrony: Host is not synchronised with NTP` | `last(chrony.tracking.leap_status)=3` | Потеряна связь со всеми серверами времени (зависит от работы службы). |
+| **High** | `Chrony: Stratum is invalid (0 or >= 16)` | `stratum=0 or stratum>=16` | Источники не отдают валидный стратум (зависит от работы службы). |
+| **Warning** | `Chrony: Clock offset is excessive (> 100ms)` | `min(offset, 3m) > 0.1s or max(offset, 3m) < -0.1s` | Дрейф времени превышает 100 мс на протяжении более 3 минут (сглаживание сетевых пиков). |
+| **High** | `Chrony: Clock offset is critical (> 500ms)` | `last(offset) > 0.5s or last(offset) < -0.5s` | Критическое расхождение времени. Зависит от предупреждающего триггера. |
+| **Warning (Отключен по умолчанию)** | `Chrony: Low number of synchronized NTP sources (< 2)` | `last(synced_count) < 2` | Число активных синхронизированных источников упало ниже порога. Можно включить в интерфейсе Zabbix. |
+| **Warning (Прототип)** | `Chrony: NTP source [{#SOURCE_NAME}] is flagged as false ticker` | `last(state)="x"` | Chrony выявил, что данный сервер передает недостоверное время. |
+| **Info (Прототип)** | `Chrony: NTP source [{#SOURCE_NAME}] is unreachable` | `last(reach)=0` | Все 8 последних попыток связаться с источником завершились неудачей. |
+
+### Пользовательские макросы (User Macros):
+Вы можете настраивать пороги прямо в шаблоне или на уровне конкретного хоста:
+* `{$CHRONY.OFFSET.WARN}`: `0.1` (порог предупреждения в секундах, по умолчанию 100 мс);
+* `{$CHRONY.OFFSET.CRIT}`: `0.5` (критический порог в секундах, по умолчанию 500 мс);
+* `{$CHRONY.SOURCES.MIN.WARN}`: `2` (минимальное число источников для опционального триггера).
+
+---
+
+## 📈 Готовые графики
+
+В шаблон уже встроены графики:
+1. **Chrony: System clock offsets** — отображает динамику `System Time Offset`, `RMS Offset` и `Last Offset`.
+2. **Chrony: Root delay and dispersion** — отображает сетевые задержки до эталонного источника.
+3. **Chrony: Frequency and skew** — дрейф аппаратной частоты и ее погрешность.
+4. **Прототип графика для каждого источника**: `Chrony: Source [{#SOURCE_NAME}] offset and delay`.
+
+---
+
+## 🛠️ Диагностика и проверка с хоста
+
+Если при проверке командой `zabbix_agent2 -t chrony.tracking` возвращается ошибка или пустое значение:
+
+1. **Проверьте права пользователя `zabbix`**:
+   ```bash
+   sudo -u zabbix chronyc -c tracking
+   ```
+2. **Если сокет `/run/chrony/chronyd.sock` закрыт**:
+   Убедитесь, что каталог `/run/chrony` имеет права на чтение:
+   ```bash
+   chmod o+rx /run/chrony
+   chmod 666 /run/chrony/chronyd.sock
+   ```
+3. **Проверьте синтаксис UserParameter через агент**:
+   ```bash
+   zabbix_agent2 -t chrony.sources
+   ```
+
+---
+
+## 🗑️ Удаление
+
+Для полного удаления конфигурации с хоста:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/qwertykolea/Zabbix-chrony-agent2-suite-template/main/deploy/uninstall.sh | sudo bash
+```

@@ -1,23 +1,25 @@
-# Быстрое развертывание через Ansible
+# Automated Deployment via Ansible
 
-Плейбук автоматизирует раскатку конфигурации `chrony.conf` на любое количество серверов с Zabbix Agent 2.
+[🇬🇧 Read in English](README.md) | [🇷🇺 Читать на русском](README_RU.md)
 
-## Инструкция по запуску:
+This playbook automates the deployment of the Chrony monitoring configuration (`chrony.conf`) across any number of Linux servers running Zabbix Agent 2.
 
-1. Отредактируйте файл `inventory.ini.example`, добавив ваши серверы, и сохраните как `inventory.ini`:
+## Quick Start Guide:
+
+1. Copy and edit the example inventory file with your target server hostnames or IP addresses:
    ```bash
    cp inventory.ini.example inventory.ini
    nano inventory.ini
    ```
 
-2. Запустите плейбук:
+2. Execute the playbook:
    ```bash
    ansible-playbook -i inventory.ini playbook.yml
    ```
 
-3. Плейбук автоматически:
-   - Проверит установку и статус `chrony`.
-   - Создаст каталог `/etc/zabbix/zabbix_agent2.d/` при необходимости.
-   - Скопирует файл `chrony.conf`.
-   - Перезапустит службу `zabbix-agent2`.
-   - Проверит работоспособность метрики `chrony.tracking` и выведет результат в консоль.
+3. What the playbook performs automatically:
+   - Verifies the `chrony` package is installed and the service is enabled/active.
+   - Ensures the `/etc/zabbix/zabbix_agent2.d/` directory exists.
+   - Deploys the `chrony.conf` UserParameter configuration file.
+   - Restarts `zabbix-agent2` if the configuration changed.
+   - Validates live metric collection via `zabbix_agent2 -t chrony.tracking` and prints the output to your terminal.
