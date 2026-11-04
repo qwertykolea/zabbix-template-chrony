@@ -29,6 +29,18 @@ def generate_yaml(active: bool = False) -> str:
                   if (p.length < 13) {
                       throw 'Expected at least 13 CSV fields from chronyc -c tracking, got ' + p.length;
                   }
+                  var raw_leap = p.length >= 14 ? p[13].trim() : p[12].trim();
+                  var leap_code = 0;
+                  if (raw_leap === 'Normal' || raw_leap === '0') {
+                      leap_code = 0;
+                  } else if (raw_leap === 'Insert second' || raw_leap === '1') {
+                      leap_code = 1;
+                  } else if (raw_leap === 'Delete second' || raw_leap === '2') {
+                      leap_code = 2;
+                  } else {
+                      leap_code = 3;
+                  }
+                  var update_interval = p.length >= 14 ? parseFloat(p[12]) : 0.0;
                   return JSON.stringify({
                       ref_id: p[0],
                       ref_ip: p[1],
@@ -42,7 +54,8 @@ def generate_yaml(active: bool = False) -> str:
                       skew_ppm: parseFloat(p[9]),
                       root_delay: parseFloat(p[10]),
                       root_dispersion: parseFloat(p[11]),
-                      leap_status: parseInt(p[12])
+                      update_interval: update_interval,
+                      leap_status: leap_code
                   });"""
 
     js_sources = """                  var lines = value.trim().split('\\n');
@@ -383,6 +396,25 @@ def generate_yaml(active: bool = False) -> str:
             - tag: component
               value: ntp
 
+        - uuid: {get_uuid(f'{mode}:item:chrony.tracking.update_interval')}
+          name: 'Chrony: Update interval'
+          type: DEPENDENT
+          key: chrony.tracking.update_interval
+          delay: '0'
+          history: 14d
+          value_type: FLOAT
+          units: s
+          description: 'Interval between clock updates in seconds.'
+          master_item:
+            key: chrony.tracking.json
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.update_interval'
+          tags:
+            - tag: component
+              value: ntp
+
         - uuid: {get_uuid(f'{mode}:item:chrony.tracking.ref_ip')}
           name: 'Chrony: Reference source IP'
           type: DEPENDENT
@@ -714,50 +746,50 @@ def generate_yaml(active: bool = False) -> str:
             - value: '#'
               newvalue: 'Reference clock'
 
-      graphs:
-        - uuid: {get_uuid(f'{mode}:graph:offsets')}
-          name: 'Chrony: System clock offsets'
-          graph_items:
-            - color: 199C0D
-              item:
-                host: '{tpl_name}'
-                key: chrony.tracking.offset.system
-            - sortorder: '1'
-              color: F63100
-              item:
-                host: '{tpl_name}'
-                key: chrony.tracking.offset.rms
-            - sortorder: '2'
-              color: 2774A4
-              item:
-                host: '{tpl_name}'
-                key: chrony.tracking.offset.last
+  graphs:
+    - uuid: {get_uuid(f'{mode}:graph:offsets')}
+      name: 'Chrony: System clock offsets'
+      graph_items:
+        - color: 199C0D
+          item:
+            host: '{tpl_name}'
+            key: chrony.tracking.offset.system
+        - sortorder: '1'
+          color: F63100
+          item:
+            host: '{tpl_name}'
+            key: chrony.tracking.offset.rms
+        - sortorder: '2'
+          color: 2774A4
+          item:
+            host: '{tpl_name}'
+            key: chrony.tracking.offset.last
 
-        - uuid: {get_uuid(f'{mode}:graph:delay')}
-          name: 'Chrony: Root delay and dispersion'
-          graph_items:
-            - color: 199C0D
-              item:
-                host: '{tpl_name}'
-                key: chrony.tracking.root_delay
-            - sortorder: '1'
-              color: F63100
-              item:
-                host: '{tpl_name}'
-                key: chrony.tracking.root_dispersion
+    - uuid: {get_uuid(f'{mode}:graph:delay')}
+      name: 'Chrony: Root delay and dispersion'
+      graph_items:
+        - color: 199C0D
+          item:
+            host: '{tpl_name}'
+            key: chrony.tracking.root_delay
+        - sortorder: '1'
+          color: F63100
+          item:
+            host: '{tpl_name}'
+            key: chrony.tracking.root_dispersion
 
-        - uuid: {get_uuid(f'{mode}:graph:freq')}
-          name: 'Chrony: Frequency and skew'
-          graph_items:
-            - color: 199C0D
-              item:
-                host: '{tpl_name}'
-                key: chrony.tracking.freq_ppm
-            - sortorder: '1'
-              color: F63100
-              item:
-                host: '{tpl_name}'
-                key: chrony.tracking.skew_ppm
+    - uuid: {get_uuid(f'{mode}:graph:freq')}
+      name: 'Chrony: Frequency and skew'
+      graph_items:
+        - color: 199C0D
+          item:
+            host: '{tpl_name}'
+            key: chrony.tracking.freq_ppm
+        - sortorder: '1'
+          color: F63100
+          item:
+            host: '{tpl_name}'
+            key: chrony.tracking.skew_ppm
 """
     return out
 

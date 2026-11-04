@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Installer for Chrony NTP Monitoring (Zabbix Agent 2)
+# Repository: https://github.com/qwertykolea/zabbix-template-chrony
 # ==============================================================================
 set -euo pipefail
 
@@ -30,8 +31,8 @@ fi
 
 # 3. Check chronyd service status
 CHRONY_SVC="chronyd"
-if ! systemctl list-unit-files | grep -q "^chronyd.service"; then
-    if systemctl list-unit-files | grep -q "^chrony.service"; then
+if ! systemctl list-unit-files 2>/dev/null | grep -q "^chronyd.service"; then
+    if systemctl list-unit-files 2>/dev/null | grep -q "^chrony.service"; then
         CHRONY_SVC="chrony"
     fi
 fi
@@ -47,15 +48,18 @@ if ! command -v zabbix_agent2 &>/dev/null; then
     echo -e "       Continuing with config deployment, but agent restart/testing might fail."
 fi
 
-# 5. Locate configuration file
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONF_SRC="${SCRIPT_DIR}/../agent2_conf/chrony.conf"
+# 5. Locate configuration file (safe when run via piped curl ... | bash)
+CONF_SRC=""
+if [[ -n "${BASH_SOURCE[0]:-}" ]] && [[ -f "${BASH_SOURCE[0]:-}" ]]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    CONF_SRC="${SCRIPT_DIR}/../agent2_conf/chrony.conf"
+fi
 
 CONF_DEST_DIR="/etc/zabbix/zabbix_agent2.d"
 CONF_DEST="${CONF_DEST_DIR}/chrony.conf"
 
-if [[ ! -f "${CONF_SRC}" ]]; then
-    # In case script is downloaded standalone
+if [[ -z "${CONF_SRC}" ]] || [[ ! -f "${CONF_SRC}" ]]; then
+    # In case script is piped directly from curl (e.g. curl ... | sudo bash)
     echo -e "${BLUE}[INFO] Creating chrony.conf directly...${NC}"
     mkdir -p "${CONF_DEST_DIR}"
     cat <<'EOF' > "${CONF_DEST}"
@@ -88,12 +92,14 @@ if id -u zabbix &>/dev/null; then
 fi
 
 # 7. Restart Zabbix Agent 2
-if systemctl list-unit-files | grep -q "^zabbix-agent2.service"; then
+if systemctl is-active --quiet zabbix-agent2 || systemctl list-unit-files 2>/dev/null | grep -Eq "^zabbix[-_]agent2"; then
     echo -e "${BLUE}[INFO] Restarting zabbix-agent2 service...${NC}"
-    systemctl restart zabbix-agent2
-    systemctl is-active --quiet zabbix-agent2 && echo -e "${GREEN}[OK] zabbix-agent2 is active and running.${NC}"
+    systemctl restart zabbix-agent2 || true
+    if systemctl is-active --quiet zabbix-agent2; then
+        echo -e "${GREEN}[OK] zabbix-agent2 is active and running.${NC}"
+    fi
 else
-    echo -e "${YELLOW}[WARN] zabbix-agent2 service not found. If running in a container, please reload the agent manually.${NC}"
+    echo -e "${YELLOW}[WARN] zabbix-agent2 service not found or not active. If running in a container, please reload the agent manually.${NC}"
 fi
 
 # 8. Test metrics

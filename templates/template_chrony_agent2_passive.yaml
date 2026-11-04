@@ -62,6 +62,18 @@ zabbix_export:
                   if (p.length < 13) {
                       throw 'Expected at least 13 CSV fields from chronyc -c tracking, got ' + p.length;
                   }
+                  var raw_leap = p.length >= 14 ? p[13].trim() : p[12].trim();
+                  var leap_code = 0;
+                  if (raw_leap === 'Normal' || raw_leap === '0') {
+                      leap_code = 0;
+                  } else if (raw_leap === 'Insert second' || raw_leap === '1') {
+                      leap_code = 1;
+                  } else if (raw_leap === 'Delete second' || raw_leap === '2') {
+                      leap_code = 2;
+                  } else {
+                      leap_code = 3;
+                  }
+                  var update_interval = p.length >= 14 ? parseFloat(p[12]) : 0.0;
                   return JSON.stringify({
                       ref_id: p[0],
                       ref_ip: p[1],
@@ -75,7 +87,8 @@ zabbix_export:
                       skew_ppm: parseFloat(p[9]),
                       root_delay: parseFloat(p[10]),
                       root_dispersion: parseFloat(p[11]),
-                      leap_status: parseInt(p[12])
+                      update_interval: update_interval,
+                      leap_status: leap_code
                   });
           tags:
             - tag: component
@@ -316,6 +329,25 @@ zabbix_export:
             - type: JSONPATH
               parameters:
                 - '$.skew_ppm'
+          tags:
+            - tag: component
+              value: ntp
+
+        - uuid: 0d34fb00c07f569881186d6a8f45e7ef
+          name: 'Chrony: Update interval'
+          type: DEPENDENT
+          key: chrony.tracking.update_interval
+          delay: '0'
+          history: 14d
+          value_type: FLOAT
+          units: s
+          description: 'Interval between clock updates in seconds.'
+          master_item:
+            key: chrony.tracking.json
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.update_interval'
           tags:
             - tag: component
               value: ntp
@@ -681,47 +713,47 @@ zabbix_export:
             - value: '#'
               newvalue: 'Reference clock'
 
-      graphs:
-        - uuid: 38263fb9c94a5d73827352989d0f6e2a
-          name: 'Chrony: System clock offsets'
-          graph_items:
-            - color: 199C0D
-              item:
-                host: 'Chrony by Zabbix agent 2'
-                key: chrony.tracking.offset.system
-            - sortorder: '1'
-              color: F63100
-              item:
-                host: 'Chrony by Zabbix agent 2'
-                key: chrony.tracking.offset.rms
-            - sortorder: '2'
-              color: 2774A4
-              item:
-                host: 'Chrony by Zabbix agent 2'
-                key: chrony.tracking.offset.last
+  graphs:
+    - uuid: 38263fb9c94a5d73827352989d0f6e2a
+      name: 'Chrony: System clock offsets'
+      graph_items:
+        - color: 199C0D
+          item:
+            host: 'Chrony by Zabbix agent 2'
+            key: chrony.tracking.offset.system
+        - sortorder: '1'
+          color: F63100
+          item:
+            host: 'Chrony by Zabbix agent 2'
+            key: chrony.tracking.offset.rms
+        - sortorder: '2'
+          color: 2774A4
+          item:
+            host: 'Chrony by Zabbix agent 2'
+            key: chrony.tracking.offset.last
 
-        - uuid: c90816d3fe2a562493c21c84918320e0
-          name: 'Chrony: Root delay and dispersion'
-          graph_items:
-            - color: 199C0D
-              item:
-                host: 'Chrony by Zabbix agent 2'
-                key: chrony.tracking.root_delay
-            - sortorder: '1'
-              color: F63100
-              item:
-                host: 'Chrony by Zabbix agent 2'
-                key: chrony.tracking.root_dispersion
+    - uuid: c90816d3fe2a562493c21c84918320e0
+      name: 'Chrony: Root delay and dispersion'
+      graph_items:
+        - color: 199C0D
+          item:
+            host: 'Chrony by Zabbix agent 2'
+            key: chrony.tracking.root_delay
+        - sortorder: '1'
+          color: F63100
+          item:
+            host: 'Chrony by Zabbix agent 2'
+            key: chrony.tracking.root_dispersion
 
-        - uuid: 5141dda0e9385fb7bb8de3a39bfff10b
-          name: 'Chrony: Frequency and skew'
-          graph_items:
-            - color: 199C0D
-              item:
-                host: 'Chrony by Zabbix agent 2'
-                key: chrony.tracking.freq_ppm
-            - sortorder: '1'
-              color: F63100
-              item:
-                host: 'Chrony by Zabbix agent 2'
-                key: chrony.tracking.skew_ppm
+    - uuid: 5141dda0e9385fb7bb8de3a39bfff10b
+      name: 'Chrony: Frequency and skew'
+      graph_items:
+        - color: 199C0D
+          item:
+            host: 'Chrony by Zabbix agent 2'
+            key: chrony.tracking.freq_ppm
+        - sortorder: '1'
+          color: F63100
+          item:
+            host: 'Chrony by Zabbix agent 2'
+            key: chrony.tracking.skew_ppm

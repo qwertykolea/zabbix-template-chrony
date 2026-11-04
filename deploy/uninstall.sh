@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Uninstaller for Chrony NTP Monitoring (Zabbix Agent 2)
+# Repository: https://github.com/qwertykolea/zabbix-template-chrony
 # ==============================================================================
 set -euo pipefail
 
@@ -23,9 +24,9 @@ else
     echo -e "${BLUE}[INFO] ${CONF_DEST} does not exist.${NC}"
 fi
 
-if systemctl list-unit-files | grep -q "^zabbix-agent2.service"; then
+if systemctl is-active --quiet zabbix-agent2 || systemctl list-unit-files 2>/dev/null | grep -Eq "^zabbix[-_]agent2"; then
     echo -e "${BLUE}[INFO] Restarting zabbix-agent2 service...${NC}"
-    systemctl restart zabbix-agent2
+    systemctl restart zabbix-agent2 || true
     echo -e "${GREEN}[OK] zabbix-agent2 restarted.${NC}"
 fi
 
