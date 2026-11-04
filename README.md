@@ -9,7 +9,7 @@
 
 A production-grade, highly efficient Chrony NTP client monitoring suite designed for **Zabbix Agent 2** and compliant with official Zabbix 7.4 standards.
 
-Features the **Master + Dependent Items** pattern, raw CSV output parsing via native Zabbix Preprocessing, automated Low-Level Discovery (LLD) of all upstream NTP sources, zero external bash scripts, and minimal system overhead.
+Features the **Master + Dependent Items** pattern, raw CSV output parsing via native Zabbix Preprocessing, automated Low-Level Discovery (LLD) of all upstream NTP sources, native Zabbix 7.0+ template dashboard, Grafana dashboard integration, zero external bash scripts, and minimal system overhead.
 
 ---
 
@@ -23,6 +23,8 @@ Features the **Master + Dependent Items** pattern, raw CSV output parsing via na
 | **Pure NTP Client Support** | **100%**. No server sockets or clients required | Fails on clients by expecting UDP 323 & connected clients |
 | **Agent Modes Supported** | **Dual Templates**: Passive and Active included | Only a single hard-coded mode |
 | **Upstream Sources Discovery (LLD)**| **Automated (LLD)** for every configured peer | Static metrics or not implemented |
+| **Built-in Template Dashboard** | **Native Zabbix 7.0/7.4 Dashboard** with KPI cards & graphs | Absent |
+| **Grafana Integration** | **Ready-to-use JSON** for Zabbix plugin | Absent |
 | **Triggers & Anti-flapping** | Multi-level thresholds with restart dependencies | Absent or basic without dependencies |
 
 ---
@@ -39,6 +41,11 @@ zabbix-template-chrony/
 │   ├── template_chrony_agent2_passive.yaml   # Template for Passive Agent (Zabbix Server pulls metrics)
 │   ├── template_chrony_agent2_active.yaml    # Template for Active Agent (Agent pushes metrics)
 │   └── generate.py                           # Deterministic template & UUID generator
+├── dashboards/
+│   └── grafana/
+│       ├── chrony-overview.json              # Production Grafana Dashboard for Zabbix plugin
+│       ├── README.md                         # Grafana setup guide (EN)
+│       └── README_RU.md                      # Grafana setup guide (RU)
 └── deploy/
     ├── install.sh                            # Automated 1-click Linux host installer
     ├── uninstall.sh                          # Clean uninstaller
@@ -120,6 +127,7 @@ sudo ./install.sh
 * `Chrony: Frequency` — local oscillator frequency drift rate in parts per million (`ppm`).
 * `Chrony: Residual frequency` — residual frequency offset (`ppm`).
 * `Chrony: Skew` — estimated error bound on frequency in `ppm`.
+* `Chrony: Update interval` — interval between the last two clock updates in seconds (`s`).
 * `Chrony: Reference source IP` — IP address or identifier of the active upstream reference server.
 
 ### 2. Sources Summary Metrics
@@ -146,6 +154,8 @@ Zabbix automatically discovers each configured upstream NTP source and tracks:
 | **High** | `Chrony: Stratum is invalid (0 or >= 16)` | `stratum=0 or stratum>=16` | Upstream stratum indicates unsynchronized state (depends on service running). |
 | **Warning** | `Chrony: Clock offset is excessive (> 100ms)` | `min(offset, 3m) > 0.1s or max(offset, 3m) < -0.1s` | Clock offset exceeds 100ms for over 3 minutes (filters network spikes). |
 | **High** | `Chrony: Clock offset is critical (> 500ms)` | `last(offset) > 0.5s or last(offset) < -0.5s` | Critical clock drift beyond 500ms (depends on warning trigger). |
+| **Warning** | `Chrony: Root dispersion is excessive (> 100ms)` | `min(root_dispersion, 5m) > 0.1s` | Root dispersion exceeds `{$CHRONY.DISPERSION.WARN}` for 5 minutes. Early warning of degraded network path quality to NTP servers. |
+| **Info** | `Chrony: Active reference source is flapping` | `changes(ref_ip, 1h) > 5` | Active upstream reference peer switched more than 5 times in 1 hour. Indicates routing instability or network jitter. |
 | **Warning (Disabled by default)** | `Chrony: Low number of synchronized NTP sources (< 2)` | `last(synced_count) < 2` | Active synchronized sources count dropped below threshold. Can be enabled in Zabbix UI. |
 | **Warning (Prototype)** | `Chrony: NTP source [{#SOURCE_NAME}] is flagged as false ticker` | `last(state)="x"` | Chrony identified this source as providing invalid or contradictory time. |
 | **Info (Prototype)** | `Chrony: NTP source [{#SOURCE_NAME}] is unreachable` | `last(reach)=0` | Last 8 consecutive polling attempts to this source failed. |
@@ -154,17 +164,26 @@ Zabbix automatically discovers each configured upstream NTP source and tracks:
 You can override thresholds at the template level or per-host level:
 * `{$CHRONY.OFFSET.WARN}`: `0.1` (Warning threshold in seconds, default 100ms);
 * `{$CHRONY.OFFSET.CRIT}`: `0.5` (Critical threshold in seconds, default 500ms);
+* `{$CHRONY.DISPERSION.WARN}`: `0.1` (Warning threshold for root dispersion in seconds, default 100ms);
 * `{$CHRONY.SOURCES.MIN.WARN}`: `2` (Minimum synchronized sources for the optional trigger).
 
 ---
 
-## 📈 Pre-Built Graphs
+## 📈 Visualizations & Dashboards
 
-The template includes out-of-the-box graphs:
-1. **Chrony: System clock offsets** — displays `System Time Offset`, `RMS Offset`, and `Last Offset`.
-2. **Chrony: Root delay and dispersion** — displays network latency to the reference stratum-1 clock.
-3. **Chrony: Frequency and skew** — displays quartz oscillator drift and uncertainty bounds.
-4. **Source Graph Prototype**: `Chrony: Source [{#SOURCE_NAME}] offset and delay` — auto-generated for each discovered NTP source.
+### 1. Built-in Template Dashboard (Zabbix 7.0 LTS / 7.4+)
+The template includes an integrated native dashboard **Chrony NTP overview**, accessible directly in Zabbix host dashboards:
+* **KPI Value Cards**: Real-time display for `System time offset`, `Reference source IP`, `Stratum`, and `Leap status`.
+* **System Clock Offsets Graph**: Time-series comparing System time offset, RMS offset, and Last sample offset.
+* **Root Delay & Dispersion Graph**: Network latency and accumulated error bounds to upstream reference clocks.
+* **Frequency & Skew Graph**: Local crystal oscillator frequency drift (ppm) and stability bounds.
+* **Source Graph Prototype**: Dynamic sub-graphs auto-instantiated for every discovered NTP peer.
+
+### 2. Standalone Grafana Dashboard
+For teams utilizing Grafana with the official [Zabbix datasource plugin](https://grafana.com/grafana/plugins/alexanderzobnin-zabbix-datasource/), a ready-to-import JSON dashboard is provided in [`dashboards/grafana/`](dashboards/grafana/):
+* Dynamic dropdown selectors for Host Group and Host.
+* Polished stat cards and multi-series timeseries graphs.
+* See the [Grafana Setup Guide](dashboards/grafana/README.md) for quick import instructions.
 
 ---
 

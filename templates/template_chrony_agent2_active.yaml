@@ -7,7 +7,7 @@ zabbix_export:
     - uuid: 791ae09a76664d67bc21d407a516c91e
       template: 'Chrony by Zabbix agent 2 active'
       name: 'Chrony by Zabbix agent 2 active'
-      description: 'Production-grade Chrony NTP client monitoring for Zabbix Agent 2 (Active checks).\nFeatures zero external shell scripts, single CSV master item polling, and low-level discovery (LLD) of NTP sources.'
+      description: 'Production-grade Chrony NTP client monitoring for Zabbix Agent 2 (Active checks).\nFeatures zero external shell scripts, single CSV master item polling, low-level discovery (LLD) of NTP sources, and native template dashboard.'
       groups:
         - name: Templates/Applications
       items:
@@ -277,6 +277,18 @@ zabbix_export:
           tags:
             - tag: component
               value: ntp
+          triggers:
+            - uuid: 03aa56296b3446b0b7459ce4a1b3c9d8
+              expression: 'min(/Chrony by Zabbix agent 2 active/chrony.tracking.root_dispersion,5m)>{$CHRONY.DISPERSION.WARN}'
+              name: 'Chrony: Root dispersion is excessive (> {$CHRONY.DISPERSION.WARN}s)'
+              priority: WARNING
+              description: 'Maximum estimated error dispersion to the primary clock source exceeds {$CHRONY.DISPERSION.WARN}s for at least 5 minutes. Network route quality to NTP servers may be degraded.'
+              dependencies:
+                - name: 'Chrony: Service process is not running'
+                  expression: 'last(/Chrony by Zabbix agent 2 active/proc.num[chronyd])=0'
+              tags:
+                - tag: scope
+                  value: performance
 
         - uuid: a992a9c812094e79a01b084924d0ed1a
           name: 'Chrony: Frequency'
@@ -372,6 +384,19 @@ zabbix_export:
           tags:
             - tag: component
               value: ntp
+          triggers:
+            - uuid: 6e11eafc25c74fbb95785a7b37c1bd06
+              expression: 'changes(/Chrony by Zabbix agent 2 active/chrony.tracking.ref_ip,1h)>5'
+              name: 'Chrony: Active reference source is flapping'
+              priority: INFO
+              manual_close: 'YES'
+              description: 'Active upstream NTP peer has switched more than 5 times within the last hour. Indicates potential network path instability or fluctuating latency.'
+              dependencies:
+                - name: 'Chrony: Service process is not running'
+                  expression: 'last(/Chrony by Zabbix agent 2 active/proc.num[chronyd])=0'
+              tags:
+                - tag: scope
+                  value: notice
 
         - uuid: 4fb4928ca30541e88cb92d3fc1dba490
           name: 'Chrony: Sources raw data'
@@ -666,6 +691,100 @@ zabbix_export:
                     host: 'Chrony by Zabbix agent 2 active'
                     key: 'chrony.source.delay[{#SOURCE_NAME}]'
 
+      dashboards:
+        - uuid: c90719c7deb742768fad984dd352eee2
+          name: 'Chrony NTP overview'
+          pages:
+            - widgets:
+                - type: item
+                  name: 'System time offset'
+                  width: '18'
+                  height: '4'
+                  fields:
+                    - type: ITEM
+                      name: itemid.0
+                      value:
+                        host: 'Chrony by Zabbix agent 2 active'
+                        key: chrony.tracking.offset.system
+                - type: item
+                  name: 'Reference source IP'
+                  x: '18'
+                  width: '18'
+                  height: '4'
+                  fields:
+                    - type: ITEM
+                      name: itemid.0
+                      value:
+                        host: 'Chrony by Zabbix agent 2 active'
+                        key: chrony.tracking.ref_ip
+                - type: item
+                  name: 'Stratum'
+                  x: '36'
+                  width: '18'
+                  height: '4'
+                  fields:
+                    - type: ITEM
+                      name: itemid.0
+                      value:
+                        host: 'Chrony by Zabbix agent 2 active'
+                        key: chrony.tracking.stratum
+                - type: item
+                  name: 'Leap status'
+                  x: '54'
+                  width: '18'
+                  height: '4'
+                  fields:
+                    - type: ITEM
+                      name: itemid.0
+                      value:
+                        host: 'Chrony by Zabbix agent 2 active'
+                        key: chrony.tracking.leap_status
+                - type: graph
+                  'y': '4'
+                  width: '36'
+                  height: '6'
+                  fields:
+                    - type: GRAPH
+                      name: graphid.0
+                      value:
+                        host: 'Chrony by Zabbix agent 2 active'
+                        name: 'Chrony: System clock offsets'
+                - type: graph
+                  x: '36'
+                  'y': '4'
+                  width: '36'
+                  height: '6'
+                  fields:
+                    - type: GRAPH
+                      name: graphid.0
+                      value:
+                        host: 'Chrony by Zabbix agent 2 active'
+                        name: 'Chrony: Root delay and dispersion'
+                - type: graph
+                  'y': '10'
+                  width: '36'
+                  height: '6'
+                  fields:
+                    - type: GRAPH
+                      name: graphid.0
+                      value:
+                        host: 'Chrony by Zabbix agent 2 active'
+                        name: 'Chrony: Frequency and skew'
+                - type: graphprototype
+                  x: '36'
+                  'y': '10'
+                  width: '36'
+                  height: '6'
+                  fields:
+                    - type: INTEGER
+                      name: columns
+                      value: '1'
+                    - type: GRAPH_PROTOTYPE
+                      name: graphid.0
+                      value:
+                        host: 'Chrony by Zabbix agent 2 active'
+                        name: 'Chrony: Source [{#SOURCE_NAME}] offset and delay'
+
       macros:
         - macro: '{$CHRONY.OFFSET.WARN}'
           value: '0.1'
@@ -673,6 +792,9 @@ zabbix_export:
         - macro: '{$CHRONY.OFFSET.CRIT}'
           value: '0.5'
           description: 'Critical threshold for system clock offset in seconds (0.5 = 500ms).'
+        - macro: '{$CHRONY.DISPERSION.WARN}'
+          value: '0.1'
+          description: 'Warning threshold for root dispersion in seconds (0.1 = 100ms).'
         - macro: '{$CHRONY.SOURCES.MIN.WARN}'
           value: '2'
           description: 'Minimum required synchronized NTP sources.'

@@ -17,10 +17,10 @@ def generate_yaml(active: bool = False) -> str:
     tpl_name = "Chrony by Zabbix agent 2 active" if active else "Chrony by Zabbix agent 2"
     tpl_desc = (
         "Production-grade Chrony NTP client monitoring for Zabbix Agent 2 (Active checks).\\n"
-        "Features zero external shell scripts, single CSV master item polling, and low-level discovery (LLD) of NTP sources."
+        "Features zero external shell scripts, single CSV master item polling, low-level discovery (LLD) of NTP sources, and native template dashboard."
         if active else
         "Production-grade Chrony NTP client monitoring for Zabbix Agent 2 (Passive checks).\\n"
-        "Features zero external shell scripts, single CSV master item polling, and low-level discovery (LLD) of NTP sources."
+        "Features zero external shell scripts, single CSV master item polling, low-level discovery (LLD) of NTP sources, and native template dashboard."
     )
     master_item_type = "\n          type: ZABBIX_ACTIVE" if active else ""
     proc_item_type = "\n          type: ZABBIX_ACTIVE" if active else ""
@@ -342,6 +342,18 @@ def generate_yaml(active: bool = False) -> str:
           tags:
             - tag: component
               value: ntp
+          triggers:
+            - uuid: {get_uuid(f'{mode}:trigger:dispersion_warn')}
+              expression: 'min(/{tpl_name}/chrony.tracking.root_dispersion,5m)>{{$CHRONY.DISPERSION.WARN}}'
+              name: 'Chrony: Root dispersion is excessive (> {{$CHRONY.DISPERSION.WARN}}s)'
+              priority: WARNING
+              description: 'Maximum estimated error dispersion to the primary clock source exceeds {{$CHRONY.DISPERSION.WARN}}s for at least 5 minutes. Network route quality to NTP servers may be degraded.'
+              dependencies:
+                - name: 'Chrony: Service process is not running'
+                  expression: 'last(/{tpl_name}/proc.num[chronyd])=0'
+              tags:
+                - tag: scope
+                  value: performance
 
         - uuid: {get_uuid(f'{mode}:item:chrony.tracking.freq_ppm')}
           name: 'Chrony: Frequency'
@@ -437,6 +449,19 @@ def generate_yaml(active: bool = False) -> str:
           tags:
             - tag: component
               value: ntp
+          triggers:
+            - uuid: {get_uuid(f'{mode}:trigger:peer_flapping')}
+              expression: 'changes(/{tpl_name}/chrony.tracking.ref_ip,1h)>5'
+              name: 'Chrony: Active reference source is flapping'
+              priority: INFO
+              manual_close: 'YES'
+              description: 'Active upstream NTP peer has switched more than 5 times within the last hour. Indicates potential network path instability or fluctuating latency.'
+              dependencies:
+                - name: 'Chrony: Service process is not running'
+                  expression: 'last(/{tpl_name}/proc.num[chronyd])=0'
+              tags:
+                - tag: scope
+                  value: notice
 
         - uuid: {get_uuid(f'{mode}:item:chrony.sources')}
           name: 'Chrony: Sources raw data'{master_item_type}
@@ -700,6 +725,100 @@ def generate_yaml(active: bool = False) -> str:
                     host: '{tpl_name}'
                     key: 'chrony.source.delay[{{#SOURCE_NAME}}]'
 
+      dashboards:
+        - uuid: {get_uuid(f'{mode}:dash:overview')}
+          name: 'Chrony NTP overview'
+          pages:
+            - widgets:
+                - type: item
+                  name: 'System time offset'
+                  width: '18'
+                  height: '4'
+                  fields:
+                    - type: ITEM
+                      name: itemid.0
+                      value:
+                        host: '{tpl_name}'
+                        key: chrony.tracking.offset.system
+                - type: item
+                  name: 'Reference source IP'
+                  x: '18'
+                  width: '18'
+                  height: '4'
+                  fields:
+                    - type: ITEM
+                      name: itemid.0
+                      value:
+                        host: '{tpl_name}'
+                        key: chrony.tracking.ref_ip
+                - type: item
+                  name: 'Stratum'
+                  x: '36'
+                  width: '18'
+                  height: '4'
+                  fields:
+                    - type: ITEM
+                      name: itemid.0
+                      value:
+                        host: '{tpl_name}'
+                        key: chrony.tracking.stratum
+                - type: item
+                  name: 'Leap status'
+                  x: '54'
+                  width: '18'
+                  height: '4'
+                  fields:
+                    - type: ITEM
+                      name: itemid.0
+                      value:
+                        host: '{tpl_name}'
+                        key: chrony.tracking.leap_status
+                - type: graph
+                  'y': '4'
+                  width: '36'
+                  height: '6'
+                  fields:
+                    - type: GRAPH
+                      name: graphid.0
+                      value:
+                        host: '{tpl_name}'
+                        name: 'Chrony: System clock offsets'
+                - type: graph
+                  x: '36'
+                  'y': '4'
+                  width: '36'
+                  height: '6'
+                  fields:
+                    - type: GRAPH
+                      name: graphid.0
+                      value:
+                        host: '{tpl_name}'
+                        name: 'Chrony: Root delay and dispersion'
+                - type: graph
+                  'y': '10'
+                  width: '36'
+                  height: '6'
+                  fields:
+                    - type: GRAPH
+                      name: graphid.0
+                      value:
+                        host: '{tpl_name}'
+                        name: 'Chrony: Frequency and skew'
+                - type: graphprototype
+                  x: '36'
+                  'y': '10'
+                  width: '36'
+                  height: '6'
+                  fields:
+                    - type: INTEGER
+                      name: columns
+                      value: '1'
+                    - type: GRAPH_PROTOTYPE
+                      name: graphid.0
+                      value:
+                        host: '{tpl_name}'
+                        name: 'Chrony: Source [{{#SOURCE_NAME}}] offset and delay'
+
       macros:
         - macro: '{{$CHRONY.OFFSET.WARN}}'
           value: '0.1'
@@ -707,6 +826,9 @@ def generate_yaml(active: bool = False) -> str:
         - macro: '{{$CHRONY.OFFSET.CRIT}}'
           value: '0.5'
           description: 'Critical threshold for system clock offset in seconds (0.5 = 500ms).'
+        - macro: '{{$CHRONY.DISPERSION.WARN}}'
+          value: '0.1'
+          description: 'Warning threshold for root dispersion in seconds (0.1 = 100ms).'
         - macro: '{{$CHRONY.SOURCES.MIN.WARN}}'
           value: '2'
           description: 'Minimum required synchronized NTP sources.'
@@ -805,4 +927,4 @@ with open(os.path.join(SCRIPT_DIR, 'template_chrony_agent2_passive.yaml'), 'w', 
 with open(os.path.join(SCRIPT_DIR, 'template_chrony_agent2_active.yaml'), 'w', encoding='utf-8') as f:
     f.write(generate_yaml(active=True))
 
-print("Both templates generated successfully!")
+print("Both templates generated successfully with Dashboards and Advanced Triggers!")
