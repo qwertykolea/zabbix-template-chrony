@@ -1,0 +1,56 @@
+---
+# ==============================================================================
+# Ansible Playbook: Deploy Chrony Monitoring for Zabbix Agent 2
+# ==============================================================================
+- name: Deploy Chrony NTP Monitoring for Zabbix Agent 2
+  hosts: linux_servers
+  become: true
+  vars:
+    zabbix_agent2_conf_dir: "/etc/zabbix/zabbix_agent2.d"
+    zabbix_agent2_service: "zabbix-agent2"
+    chrony_service_name: "{{ 'chronyd' if ansible_os_family == 'RedHat' else 'chrony' }}"
+
+  tasks:
+    - name: Ensure Chrony package is installed
+      ansible.builtin.package:
+        name: chrony
+        state: present
+
+    - name: Ensure Chrony service is enabled and started
+      ansible.builtin.service:
+        name: "{{ chrony_service_name }}"
+        state: started
+        enabled: true
+
+    - name: Ensure Zabbix Agent 2 config directory exists
+      ansible.builtin.file:
+        path: "{{ zabbix_agent2_conf_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Deploy Chrony UserParameter configuration
+      ansible.builtin.copy:
+        src: "../../agent2_conf/chrony.conf"
+        dest: "{{ zabbix_agent2_conf_dir }}/chrony.conf"
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Zabbix Agent 2
+
+    - name: Test metrics collection on remote host
+      ansible.builtin.command: zabbix_agent2 -t chrony.tracking
+      register: test_tracking
+      changed_when: false
+      failed_when: false
+
+    - name: Display test result
+      ansible.builtin.debug:
+        msg: "chrony.tracking test output: {{ test_tracking.stdout }}"
+
+  handlers:
+    - name: Restart Zabbix Agent 2
+      ansible.builtin.service:
+        name: "{{ zabbix_agent2_service }}"
+        state: restarted

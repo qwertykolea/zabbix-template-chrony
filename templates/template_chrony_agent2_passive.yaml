@@ -1,0 +1,727 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+    - uuid: b6f9c7cb3e115345a2a1a92971f51baf
+      name: Templates/Applications
+  templates:
+    - uuid: 7f8117f046f452fcb9d4513d3f585a15
+      template: 'Chrony by Zabbix agent 2'
+      name: 'Chrony by Zabbix agent 2'
+      description: 'Production-grade Chrony NTP client monitoring for Zabbix Agent 2 (Passive checks).\nFeatures zero external shell scripts, single CSV master item polling, and low-level discovery (LLD) of NTP sources.'
+      groups:
+        - name: Templates/Applications
+      items:
+        - uuid: ea7e729273de56ab9ef3cf290a93e177
+          name: 'Chrony: Service process state'
+          key: 'proc.num[chronyd]'
+          delay: 1m
+          history: 14d
+          value_type: UNSIGNED
+          description: 'Checks if chronyd daemon process is running.'
+          tags:
+            - tag: component
+              value: system
+          triggers:
+            - uuid: 95af0535c3245734906aa96af54601eb
+              expression: 'last(/Chrony by Zabbix agent 2/proc.num[chronyd])=0'
+              name: 'Chrony: Service process is not running'
+              priority: HIGH
+              description: 'The chronyd background daemon process is not running. Clock synchronization is stopped.'
+              tags:
+                - tag: scope
+                  value: availability
+
+        - uuid: 4da32db6b531592583b643598a6149ae
+          name: 'Chrony: Tracking raw data'
+          key: chrony.tracking
+          delay: 1m
+          history: 1h
+          trends: '0'
+          value_type: TEXT
+          description: 'Raw CSV output from command: chronyc -c tracking'
+          tags:
+            - tag: component
+              value: raw
+
+        - uuid: ecfe4be183395745ad673566b5c60db0
+          name: 'Chrony: Tracking JSON'
+          type: DEPENDENT
+          key: chrony.tracking.json
+          delay: '0'
+          history: 1h
+          trends: '0'
+          value_type: TEXT
+          description: 'Parsed JSON structure from chronyc -c tracking raw CSV.'
+          master_item:
+            key: chrony.tracking
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var p = value.trim().split(',');
+                  if (p.length < 13) {
+                      throw 'Expected at least 13 CSV fields from chronyc -c tracking, got ' + p.length;
+                  }
+                  return JSON.stringify({
+                      ref_id: p[0],
+                      ref_ip: p[1],
+                      stratum: parseInt(p[2]),
+                      ref_time: p[3],
+                      system_time_offset: parseFloat(p[4]),
+                      last_offset: parseFloat(p[5]),
+                      rms_offset: parseFloat(p[6]),
+                      freq_ppm: parseFloat(p[7]),
+                      residual_freq: parseFloat(p[8]),
+                      skew_ppm: parseFloat(p[9]),
+                      root_delay: parseFloat(p[10]),
+                      root_dispersion: parseFloat(p[11]),
+                      leap_status: parseInt(p[12])
+                  });
+          tags:
+            - tag: component
+              value: json
+
+        - uuid: e5be7b495b325d3c8cf665b5af66c792
+          name: 'Chrony: System time offset'
+          type: DEPENDENT
+          key: chrony.tracking.offset.system
+          delay: '0'
+          history: 30d
+          value_type: FLOAT
+          units: s
+          description: 'Current offset between local system clock and reference NTP source (in seconds).'
+          master_item:
+            key: chrony.tracking.json
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.system_time_offset'
+          tags:
+            - tag: component
+              value: ntp
+          triggers:
+            - uuid: 7810e31a2cce56048503b3f8c7f4cf8a
+              expression: 'min(/Chrony by Zabbix agent 2/chrony.tracking.offset.system,3m)>{$CHRONY.OFFSET.WARN} or max(/Chrony by Zabbix agent 2/chrony.tracking.offset.system,3m)<-{$CHRONY.OFFSET.WARN}'
+              name: 'Chrony: Clock offset is excessive (> {$CHRONY.OFFSET.WARN}s)'
+              priority: WARNING
+              description: 'System clock offset has exceeded {$CHRONY.OFFSET.WARN}s (100ms) for at least 3 minutes.'
+              dependencies:
+                - name: 'Chrony: Service process is not running'
+                  expression: 'last(/Chrony by Zabbix agent 2/proc.num[chronyd])=0'
+              tags:
+                - tag: scope
+                  value: performance
+            - uuid: 796e95c415c654068a9f9d69ccff1418
+              expression: 'last(/Chrony by Zabbix agent 2/chrony.tracking.offset.system)>{$CHRONY.OFFSET.CRIT} or last(/Chrony by Zabbix agent 2/chrony.tracking.offset.system)<-{$CHRONY.OFFSET.CRIT}'
+              name: 'Chrony: Clock offset is critical (> {$CHRONY.OFFSET.CRIT}s)'
+              priority: HIGH
+              description: 'System clock offset has critically deviated beyond {$CHRONY.OFFSET.CRIT}s (500ms).'
+              dependencies:
+                - name: 'Chrony: Clock offset is excessive (> {$CHRONY.OFFSET.WARN}s)'
+                  expression: 'min(/Chrony by Zabbix agent 2/chrony.tracking.offset.system,3m)>{$CHRONY.OFFSET.WARN} or max(/Chrony by Zabbix agent 2/chrony.tracking.offset.system,3m)<-{$CHRONY.OFFSET.WARN}'
+                - name: 'Chrony: Service process is not running'
+                  expression: 'last(/Chrony by Zabbix agent 2/proc.num[chronyd])=0'
+              tags:
+                - tag: scope
+                  value: availability
+
+        - uuid: bb9898382a38570f8b74f6e465fa15e9
+          name: 'Chrony: RMS offset'
+          type: DEPENDENT
+          key: chrony.tracking.offset.rms
+          delay: '0'
+          history: 30d
+          value_type: FLOAT
+          units: s
+          description: 'Long-term root mean square (RMS) average of the clock offset.'
+          master_item:
+            key: chrony.tracking.json
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.rms_offset'
+          tags:
+            - tag: component
+              value: ntp
+
+        - uuid: 02dad8bc4e5b5158b83a0bbef92a18d6
+          name: 'Chrony: Last offset'
+          type: DEPENDENT
+          key: chrony.tracking.offset.last
+          delay: '0'
+          history: 14d
+          value_type: FLOAT
+          units: s
+          description: 'Estimated local clock offset during the last clock update measurement.'
+          master_item:
+            key: chrony.tracking.json
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.last_offset'
+          tags:
+            - tag: component
+              value: ntp
+
+        - uuid: 3525e8b85d4c58a8b45867048aff8d0d
+          name: 'Chrony: Stratum'
+          type: DEPENDENT
+          key: chrony.tracking.stratum
+          delay: '0'
+          history: 30d
+          value_type: UNSIGNED
+          description: 'NTP Stratum level of the current time source (1 = primary server, 2-15 = secondary, 0 or >=16 = unsynchronized).'
+          master_item:
+            key: chrony.tracking.json
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.stratum'
+          tags:
+            - tag: component
+              value: ntp
+          triggers:
+            - uuid: caf02167e050581486a66bfe4236bb06
+              expression: 'last(/Chrony by Zabbix agent 2/chrony.tracking.stratum)=0 or last(/Chrony by Zabbix agent 2/chrony.tracking.stratum)>=16'
+              name: 'Chrony: Stratum is invalid (0 or >= 16)'
+              priority: HIGH
+              description: 'Stratum indicates the host is completely unsynchronized or upstream sources are invalid.'
+              dependencies:
+                - name: 'Chrony: Service process is not running'
+                  expression: 'last(/Chrony by Zabbix agent 2/proc.num[chronyd])=0'
+              tags:
+                - tag: scope
+                  value: availability
+
+        - uuid: 0f7abe06c97d5879a085f82d5f879e85
+          name: 'Chrony: Leap status'
+          type: DEPENDENT
+          key: chrony.tracking.leap_status
+          delay: '0'
+          history: 30d
+          value_type: UNSIGNED
+          description: 'Leap second and sync status: 0=Normal, 1=Insert second, 2=Delete second, 3=Not synchronised.'
+          master_item:
+            key: chrony.tracking.json
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.leap_status'
+          valuemap:
+            name: 'Chrony Leap Status'
+          tags:
+            - tag: component
+              value: ntp
+          triggers:
+            - uuid: 120d89d4b60a57c9bbbbfbc773c93dac
+              expression: 'last(/Chrony by Zabbix agent 2/chrony.tracking.leap_status)=3'
+              name: 'Chrony: Host is not synchronised with NTP'
+              priority: HIGH
+              description: 'Leap status is 3 (Not synchronised). Chrony has lost connection to all upstream servers.'
+              dependencies:
+                - name: 'Chrony: Service process is not running'
+                  expression: 'last(/Chrony by Zabbix agent 2/proc.num[chronyd])=0'
+              tags:
+                - tag: scope
+                  value: availability
+
+        - uuid: dd69c6394a645a65a02da18eafdbda53
+          name: 'Chrony: Root delay'
+          type: DEPENDENT
+          key: chrony.tracking.root_delay
+          delay: '0'
+          history: 14d
+          value_type: FLOAT
+          units: s
+          description: 'Total network round-trip delay to the stratum-1 reference clock.'
+          master_item:
+            key: chrony.tracking.json
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.root_delay'
+          tags:
+            - tag: component
+              value: ntp
+
+        - uuid: 84de4a2aad3f5800b209979a7f40a28f
+          name: 'Chrony: Root dispersion'
+          type: DEPENDENT
+          key: chrony.tracking.root_dispersion
+          delay: '0'
+          history: 14d
+          value_type: FLOAT
+          units: s
+          description: 'Maximum estimated error dispersion accumulated to the primary clock source.'
+          master_item:
+            key: chrony.tracking.json
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.root_dispersion'
+          tags:
+            - tag: component
+              value: ntp
+
+        - uuid: 443656c2369f59db8161871fa4c7ea37
+          name: 'Chrony: Frequency'
+          type: DEPENDENT
+          key: chrony.tracking.freq_ppm
+          delay: '0'
+          history: 14d
+          value_type: FLOAT
+          units: ppm
+          description: 'Estimated frequency drift of the local system clock in parts per million (PPM).'
+          master_item:
+            key: chrony.tracking.json
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.freq_ppm'
+          tags:
+            - tag: component
+              value: ntp
+
+        - uuid: 9523ff9eafbd54f38f616b0a2969bbe3
+          name: 'Chrony: Residual frequency'
+          type: DEPENDENT
+          key: chrony.tracking.residual_freq
+          delay: '0'
+          history: 14d
+          value_type: FLOAT
+          units: ppm
+          description: 'Residual frequency offset between the clock and reference source in PPM.'
+          master_item:
+            key: chrony.tracking.json
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.residual_freq'
+          tags:
+            - tag: component
+              value: ntp
+
+        - uuid: f07aaca69b6857ddbae4d1b1bfc85ca1
+          name: 'Chrony: Skew'
+          type: DEPENDENT
+          key: chrony.tracking.skew_ppm
+          delay: '0'
+          history: 14d
+          value_type: FLOAT
+          units: ppm
+          description: 'Estimated error bound on the local clock frequency in PPM.'
+          master_item:
+            key: chrony.tracking.json
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.skew_ppm'
+          tags:
+            - tag: component
+              value: ntp
+
+        - uuid: 92c59b276e705e6e8b4743dac6eb70a1
+          name: 'Chrony: Reference source IP'
+          type: DEPENDENT
+          key: chrony.tracking.ref_ip
+          delay: '0'
+          history: 14d
+          trends: '0'
+          value_type: CHAR
+          description: 'IP address or identifier of the active reference time source.'
+          master_item:
+            key: chrony.tracking.json
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.ref_ip'
+          tags:
+            - tag: component
+              value: ntp
+
+        - uuid: 809aad3c64ee52ceb2847faac1cbfff4
+          name: 'Chrony: Sources raw data'
+          key: chrony.sources
+          delay: 1m
+          history: 1h
+          trends: '0'
+          value_type: TEXT
+          description: 'Raw CSV output from command: chronyc -c sources'
+          tags:
+            - tag: component
+              value: raw
+
+        - uuid: de236842c99d52a38e6cebb03cce5523
+          name: 'Chrony: Sources JSON'
+          type: DEPENDENT
+          key: chrony.sources.json
+          delay: '0'
+          history: 1h
+          trends: '0'
+          value_type: TEXT
+          description: 'Parsed JSON dictionary from chronyc -c sources for discovery and summaries.'
+          master_item:
+            key: chrony.sources
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var lines = value.trim().split('\n');
+                  var obj = {};
+                  for (var i = 0; i < lines.length; i++) {
+                      var line = lines[i].trim();
+                      if (!line) continue;
+                      var p = line.split(',');
+                      if (p.length >= 10) {
+                          var name = p[2];
+                          obj[name] = {
+                              mode: p[0],
+                              state: p[1],
+                              stratum: parseInt(p[3]),
+                              poll: parseInt(p[4]),
+                              reach_octal: p[5],
+                              reach_val: parseInt(p[5], 8),
+                              last_rx: parseInt(p[6]),
+                              offset: parseFloat(p[7]),
+                              margin: parseFloat(p[8]),
+                              delay: parseFloat(p[9])
+                          };
+                      }
+                  }
+                  return JSON.stringify(obj);
+          tags:
+            - tag: component
+              value: json
+
+        - uuid: 53fbda6782d95e67bf2e8bd0130a5c25
+          name: 'Chrony: Configured sources count'
+          type: DEPENDENT
+          key: chrony.sources.count
+          delay: '0'
+          history: 14d
+          value_type: UNSIGNED
+          description: 'Total number of configured NTP sources discovered in chrony.'
+          master_item:
+            key: chrony.sources.json
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var o = JSON.parse(value);
+                  return Object.keys(o).length;
+          tags:
+            - tag: component
+              value: ntp
+
+        - uuid: 47fefbdca6bc56be8fcd813e7bf6acbd
+          name: 'Chrony: Synchronized sources count'
+          type: DEPENDENT
+          key: chrony.sources.synced_count
+          delay: '0'
+          history: 14d
+          value_type: UNSIGNED
+          description: 'Number of active NTP sources in synchronized (* or +) state.'
+          master_item:
+            key: chrony.sources.json
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var o = JSON.parse(value);
+                  var c = 0;
+                  for (var k in o) {
+                      if (o[k].state === '*' || o[k].state === '+') c++;
+                  }
+                  return c;
+          tags:
+            - tag: component
+              value: ntp
+          triggers:
+            - uuid: 5fe2ddecfd90570fb842a02d6a023060
+              expression: 'last(/Chrony by Zabbix agent 2/chrony.sources.synced_count)<{$CHRONY.SOURCES.MIN.WARN}'
+              name: 'Chrony: Low number of synchronized NTP sources (< {$CHRONY.SOURCES.MIN.WARN})'
+              priority: WARNING
+              status: DISABLED
+              description: 'Optional trigger (disabled by default). Alert fires when synchronized sources drop below the threshold.'
+              dependencies:
+                - name: 'Chrony: Service process is not running'
+                  expression: 'last(/Chrony by Zabbix agent 2/proc.num[chronyd])=0'
+              tags:
+                - tag: scope
+                  value: notice
+
+      discovery_rules:
+        - uuid: 51b99fe835dc5eeb8ba78f9faabdcd26
+          name: 'Chrony: NTP sources discovery'
+          type: DEPENDENT
+          key: chrony.sources.discovery
+          delay: '0'
+          description: 'Low-level discovery of upstream NTP sources from chrony.'
+          master_item:
+            key: chrony.sources.json
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var data = JSON.parse(value);
+                  var result = [];
+                  for (var k in data) {
+                      result.push({
+                          "{#SOURCE_NAME}": k,
+                          "{#SOURCE_MODE}": data[k].mode
+                      });
+                  }
+                  return JSON.stringify(result);
+          item_prototypes:
+            - uuid: fbcce471c90d5c319a4d9ab83570055b
+              name: 'Chrony: Source [{#SOURCE_NAME}]: State'
+              type: DEPENDENT
+              key: 'chrony.source.state[{#SOURCE_NAME}]'
+              delay: '0'
+              history: 7d
+              trends: '0'
+              value_type: CHAR
+              description: 'Current sync status of this source (*=peered, +=combined, -=excluded, ?=unreachable, x=falseticker, ~=jittery).'
+              master_item:
+                key: chrony.sources.json
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$.["{#SOURCE_NAME}"].state'
+              valuemap:
+                name: 'Chrony Source State'
+              tags:
+                - tag: component
+                  value: ntp-source
+                - tag: source
+                  value: '{#SOURCE_NAME}'
+              trigger_prototypes:
+                - uuid: dd8cd59e04b351148e690912dd3be1c3
+                  expression: 'last(/Chrony by Zabbix agent 2/chrony.source.state[{#SOURCE_NAME}])="x"'
+                  name: 'Chrony: NTP source [{#SOURCE_NAME}] is flagged as false ticker'
+                  priority: WARNING
+                  description: 'Chrony has flagged this source as inconsistent or erroneous (falseticker).'
+                  tags:
+                    - tag: component
+                      value: ntp-source
+
+            - uuid: acbdafa8d1c65fbb9d1300a00d021450
+              name: 'Chrony: Source [{#SOURCE_NAME}]: Stratum'
+              type: DEPENDENT
+              key: 'chrony.source.stratum[{#SOURCE_NAME}]'
+              delay: '0'
+              history: 7d
+              value_type: UNSIGNED
+              description: 'NTP Stratum level reported by this source.'
+              master_item:
+                key: chrony.sources.json
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$.["{#SOURCE_NAME}"].stratum'
+              tags:
+                - tag: component
+                  value: ntp-source
+                - tag: source
+                  value: '{#SOURCE_NAME}'
+
+            - uuid: 006e38b9a9dd5701adc969d5ce26d414
+              name: 'Chrony: Source [{#SOURCE_NAME}]: Reachability register'
+              type: DEPENDENT
+              key: 'chrony.source.reach[{#SOURCE_NAME}]'
+              delay: '0'
+              history: 7d
+              value_type: UNSIGNED
+              description: '8-bit reachability register converted from octal to decimal (0 = no response to last 8 probes, 255 = 100% reachable).'
+              master_item:
+                key: chrony.sources.json
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$.["{#SOURCE_NAME}"].reach_val'
+              tags:
+                - tag: component
+                  value: ntp-source
+                - tag: source
+                  value: '{#SOURCE_NAME}'
+              trigger_prototypes:
+                - uuid: 640485bc227858d094d5e2fec632146e
+                  expression: 'last(/Chrony by Zabbix agent 2/chrony.source.reach[{#SOURCE_NAME}])=0'
+                  name: 'Chrony: NTP source [{#SOURCE_NAME}] is unreachable'
+                  priority: INFO
+                  manual_close: 'YES'
+                  description: 'All 8 most recent poll attempts to this NTP source failed (reachability register = 0).'
+                  tags:
+                    - tag: component
+                      value: ntp-source
+
+            - uuid: e12cf2fcfb115bed9104a1b6b3e8a70f
+              name: 'Chrony: Source [{#SOURCE_NAME}]: Last sample offset'
+              type: DEPENDENT
+              key: 'chrony.source.offset[{#SOURCE_NAME}]'
+              delay: '0'
+              history: 7d
+              value_type: FLOAT
+              units: s
+              description: 'Estimated clock offset measured from this upstream source in seconds.'
+              master_item:
+                key: chrony.sources.json
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$.["{#SOURCE_NAME}"].offset'
+              tags:
+                - tag: component
+                  value: ntp-source
+                - tag: source
+                  value: '{#SOURCE_NAME}'
+
+            - uuid: 72cdc97e32635ff9992c84e40577508c
+              name: 'Chrony: Source [{#SOURCE_NAME}]: Root distance / delay'
+              type: DEPENDENT
+              key: 'chrony.source.delay[{#SOURCE_NAME}]'
+              delay: '0'
+              history: 7d
+              value_type: FLOAT
+              units: s
+              description: 'Total network distance / round-trip delay to this source in seconds.'
+              master_item:
+                key: chrony.sources.json
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$.["{#SOURCE_NAME}"].delay'
+              tags:
+                - tag: component
+                  value: ntp-source
+                - tag: source
+                  value: '{#SOURCE_NAME}'
+
+            - uuid: c695d5848c735366a26718c8821648a7
+              name: 'Chrony: Source [{#SOURCE_NAME}]: Poll interval'
+              type: DEPENDENT
+              key: 'chrony.source.poll[{#SOURCE_NAME}]'
+              delay: '0'
+              history: 7d
+              value_type: UNSIGNED
+              description: 'Polling interval for this source expressed as log2 value (e.g. 6 = 64s, 10 = 1024s).'
+              master_item:
+                key: chrony.sources.json
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$.["{#SOURCE_NAME}"].poll'
+              tags:
+                - tag: component
+                  value: ntp-source
+                - tag: source
+                  value: '{#SOURCE_NAME}'
+
+          graph_prototypes:
+            - uuid: c9e7cc8b809d5004bca208397e9a09b0
+              name: 'Chrony: Source [{#SOURCE_NAME}] offset and delay'
+              graph_items:
+                - color: 199C0D
+                  item:
+                    host: 'Chrony by Zabbix agent 2'
+                    key: 'chrony.source.offset[{#SOURCE_NAME}]'
+                - sortorder: '1'
+                  color: F63100
+                  item:
+                    host: 'Chrony by Zabbix agent 2'
+                    key: 'chrony.source.delay[{#SOURCE_NAME}]'
+
+      macros:
+        - macro: '{$CHRONY.OFFSET.WARN}'
+          value: '0.1'
+          description: 'Warning threshold for system clock offset in seconds (0.1 = 100ms).'
+        - macro: '{$CHRONY.OFFSET.CRIT}'
+          value: '0.5'
+          description: 'Critical threshold for system clock offset in seconds (0.5 = 500ms).'
+        - macro: '{$CHRONY.SOURCES.MIN.WARN}'
+          value: '2'
+          description: 'Minimum required synchronized NTP sources.'
+
+      valuemaps:
+        - uuid: 99e5cb4b2b2659219464d934b01d4fd2
+          name: 'Chrony Leap Status'
+          mappings:
+            - value: '0'
+              newvalue: Normal
+            - value: '1'
+              newvalue: 'Insert second'
+            - value: '2'
+              newvalue: 'Delete second'
+            - value: '3'
+              newvalue: 'Not synchronised'
+
+        - uuid: d561bd061a1f564c9e1556d0f31a9530
+          name: 'Chrony Source State'
+          mappings:
+            - value: '*'
+              newvalue: 'Current synchronized source'
+            - value: '+'
+              newvalue: 'Combined / Candidate'
+            - value: '-'
+              newvalue: 'Excluded / Outlier'
+            - value: '?'
+              newvalue: Unreachable
+            - value: 'x'
+              newvalue: 'False ticker (erroneous time)'
+            - value: '~'
+              newvalue: 'Jitter too variable'
+
+        - uuid: 7356f81a40f3548483ca4e399a09acdf
+          name: 'Chrony Source Mode'
+          mappings:
+            - value: '^'
+              newvalue: Server
+            - value: '='
+              newvalue: Peer
+            - value: '#'
+              newvalue: 'Reference clock'
+
+      graphs:
+        - uuid: 38263fb9c94a5d73827352989d0f6e2a
+          name: 'Chrony: System clock offsets'
+          graph_items:
+            - color: 199C0D
+              item:
+                host: 'Chrony by Zabbix agent 2'
+                key: chrony.tracking.offset.system
+            - sortorder: '1'
+              color: F63100
+              item:
+                host: 'Chrony by Zabbix agent 2'
+                key: chrony.tracking.offset.rms
+            - sortorder: '2'
+              color: 2774A4
+              item:
+                host: 'Chrony by Zabbix agent 2'
+                key: chrony.tracking.offset.last
+
+        - uuid: c90816d3fe2a562493c21c84918320e0
+          name: 'Chrony: Root delay and dispersion'
+          graph_items:
+            - color: 199C0D
+              item:
+                host: 'Chrony by Zabbix agent 2'
+                key: chrony.tracking.root_delay
+            - sortorder: '1'
+              color: F63100
+              item:
+                host: 'Chrony by Zabbix agent 2'
+                key: chrony.tracking.root_dispersion
+
+        - uuid: 5141dda0e9385fb7bb8de3a39bfff10b
+          name: 'Chrony: Frequency and skew'
+          graph_items:
+            - color: 199C0D
+              item:
+                host: 'Chrony by Zabbix agent 2'
+                key: chrony.tracking.freq_ppm
+            - sortorder: '1'
+              color: F63100
+              item:
+                host: 'Chrony by Zabbix agent 2'
+                key: chrony.tracking.skew_ppm
