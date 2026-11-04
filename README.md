@@ -171,13 +171,23 @@ You can override thresholds at the template level or per-host level:
 
 ## 📈 Visualizations & Dashboards
 
-### 1. Built-in Template Dashboard (Zabbix 7.0 LTS / 7.4+)
-The template includes an integrated native dashboard **Chrony NTP overview**, accessible directly in Zabbix host dashboards:
-* **KPI Value Cards**: Real-time display for `System time offset`, `Reference source IP`, `Stratum`, and `Leap status`.
-* **System Clock Offsets Graph**: Time-series comparing System time offset, RMS offset, and Last sample offset.
-* **Root Delay & Dispersion Graph**: Network latency and accumulated error bounds to upstream reference clocks.
-* **Frequency & Skew Graph**: Local crystal oscillator frequency drift (ppm) and stability bounds.
-* **Source Graph Prototype**: Dynamic sub-graphs auto-instantiated for every discovered NTP peer.
+### 1. Built-in Multi-Page Template Dashboard (Zabbix 7.0 LTS / 7.4+)
+The template features a native, modernized multi-page dashboard **Chrony NTP overview**, accessible directly in Zabbix host dashboards:
+
+* **Page 1: Overview**
+  * **Modern KPI Value Cards**: Clean, uncluttered value indicators with custom typography and real-time threshold coloring:
+    * `System time offset`: Color-coded thresholds (`green` < 50ms, `yellow` >= 50ms, `red` >= 100ms) with 4-decimal precision;
+    * `Reference source IP`: Full non-truncated IPv4 address display with generous horizontal margin;
+    * `Stratum`: Integer formatting (`3` instead of `3.00`) with color-coded health thresholds (`green` 1–3, `yellow` 4–9, `red` 16);
+    * `Leap status`: Clean status label (`Normal`, `Insert second`, `Not synchronised`) without clipping or truncated text.
+  * **System Clock Offsets Graph**: Time-series comparing System time offset, RMS offset, and Last sample offset.
+  * **Root Delay & Dispersion Graph**: Network latency and accumulated error bounds to upstream reference clocks.
+  * **Frequency & Skew Graph**: Local crystal oscillator frequency drift (ppm) and stability bounds.
+  * **NTP Sources Count Graph**: Configured vs. active synchronized sources count over time.
+  * **Discovered NTP Sources Grid**: Full-width 2-column prototype graphs displaying offset and delay for each discovered peer.
+
+* **Page 2: NTP Sources (Peers)**
+  * Dedicated multi-peer analysis tab with wide, high-resolution graph prototypes for all discovered upstream servers, fully synchronized with the global dashboard time selector (`DASHBOARD._timeperiod`).
 
 ### 2. Standalone Grafana Dashboard
 For teams utilizing Grafana with the official **Zabbix plugin** (`alexanderzobnin-zabbix-datasource`), a ready-to-import JSON dashboard is provided in [`dashboards/grafana/`](dashboards/grafana/):

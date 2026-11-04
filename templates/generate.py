@@ -729,17 +729,49 @@ def generate_yaml(active: bool = False) -> str:
         - uuid: {get_uuid(f'{mode}:dash:overview')}
           name: 'Chrony NTP overview'
           pages:
-            - widgets:
+            - name: Overview
+              widgets:
                 - type: item
                   name: 'System time offset'
                   width: '18'
                   height: '4'
                   fields:
+                    - type: INTEGER
+                      name: decimal_places
+                      value: '4'
                     - type: ITEM
                       name: itemid.0
                       value:
                         host: '{tpl_name}'
                         key: chrony.tracking.offset.system
+                    - type: INTEGER
+                      name: show.0
+                      value: '2'
+                    - type: INTEGER
+                      name: value_size
+                      value: '38'
+                    - type: STRING
+                      name: reference
+                      value: AAAEA
+                    - type: STRING
+                      name: thresholds.0.color
+                      value: 0EC9AC
+                    - type: STRING
+                      name: thresholds.0.threshold
+                      value: '0'
+                    - type: STRING
+                      name: thresholds.1.color
+                      value: FFCA28
+                    - type: STRING
+                      name: thresholds.1.threshold
+                      value: '0.05'
+                    - type: STRING
+                      name: thresholds.2.color
+                      value: FF465C
+                    - type: STRING
+                      name: thresholds.2.threshold
+                      value: '0.1'
+
                 - type: item
                   name: 'Reference source IP'
                   x: '18'
@@ -751,17 +783,58 @@ def generate_yaml(active: bool = False) -> str:
                       value:
                         host: '{tpl_name}'
                         key: chrony.tracking.ref_ip
+                    - type: INTEGER
+                      name: show.0
+                      value: '2'
+                    - type: INTEGER
+                      name: value_size
+                      value: '26'
+                    - type: STRING
+                      name: reference
+                      value: AAAEB
+
                 - type: item
                   name: 'Stratum'
                   x: '36'
                   width: '18'
                   height: '4'
                   fields:
+                    - type: INTEGER
+                      name: decimal_places
+                      value: '0'
                     - type: ITEM
                       name: itemid.0
                       value:
                         host: '{tpl_name}'
                         key: chrony.tracking.stratum
+                    - type: INTEGER
+                      name: show.0
+                      value: '2'
+                    - type: INTEGER
+                      name: value_size
+                      value: '45'
+                    - type: STRING
+                      name: reference
+                      value: AAAEC
+                    - type: STRING
+                      name: thresholds.0.color
+                      value: 0EC9AC
+                    - type: STRING
+                      name: thresholds.0.threshold
+                      value: '1'
+                    - type: STRING
+                      name: thresholds.1.color
+                      value: FFCA28
+                    - type: STRING
+                      name: thresholds.1.threshold
+                      value: '4'
+                    - type: STRING
+                      name: thresholds.2.color
+                      value: FF465C
+                    - type: STRING
+                      name: thresholds.2.threshold
+                      value: '16'
+
                 - type: item
                   name: 'Leap status'
                   x: '54'
@@ -773,6 +846,34 @@ def generate_yaml(active: bool = False) -> str:
                       value:
                         host: '{tpl_name}'
                         key: chrony.tracking.leap_status
+                    - type: INTEGER
+                      name: show.0
+                      value: '2'
+                    - type: INTEGER
+                      name: value_size
+                      value: '35'
+                    - type: STRING
+                      name: reference
+                      value: AAAED
+                    - type: STRING
+                      name: thresholds.0.color
+                      value: 0EC9AC
+                    - type: STRING
+                      name: thresholds.0.threshold
+                      value: '0'
+                    - type: STRING
+                      name: thresholds.1.color
+                      value: FFCA28
+                    - type: STRING
+                      name: thresholds.1.threshold
+                      value: '1'
+                    - type: STRING
+                      name: thresholds.2.color
+                      value: FF465C
+                    - type: STRING
+                      name: thresholds.2.threshold
+                      value: '3'
+
                 - type: graph
                   'y': '4'
                   width: '36'
@@ -783,6 +884,13 @@ def generate_yaml(active: bool = False) -> str:
                       value:
                         host: '{tpl_name}'
                         name: 'Chrony: System clock offsets'
+                    - type: STRING
+                      name: reference
+                      value: AAAEE
+                    - type: STRING
+                      name: time_period._reference
+                      value: DASHBOARD._timeperiod
+
                 - type: graph
                   x: '36'
                   'y': '4'
@@ -794,6 +902,13 @@ def generate_yaml(active: bool = False) -> str:
                       value:
                         host: '{tpl_name}'
                         name: 'Chrony: Root delay and dispersion'
+                    - type: STRING
+                      name: reference
+                      value: AAAEF
+                    - type: STRING
+                      name: time_period._reference
+                      value: DASHBOARD._timeperiod
+
                 - type: graph
                   'y': '10'
                   width: '36'
@@ -804,20 +919,71 @@ def generate_yaml(active: bool = False) -> str:
                       value:
                         host: '{tpl_name}'
                         name: 'Chrony: Frequency and skew'
-                - type: graphprototype
+                    - type: STRING
+                      name: reference
+                      value: AAAEG
+                    - type: STRING
+                      name: time_period._reference
+                      value: DASHBOARD._timeperiod
+
+                - type: graph
                   x: '36'
                   'y': '10'
                   width: '36'
                   height: '6'
                   fields:
+                    - type: GRAPH
+                      name: graphid.0
+                      value:
+                        host: '{tpl_name}'
+                        name: 'Chrony: NTP sources count'
+                    - type: STRING
+                      name: reference
+                      value: AAAEH
+                    - type: STRING
+                      name: time_period._reference
+                      value: DASHBOARD._timeperiod
+
+                - type: graphprototype
+                  'y': '16'
+                  width: '72'
+                  height: '6'
+                  fields:
                     - type: INTEGER
                       name: columns
-                      value: '1'
+                      value: '2'
                     - type: GRAPH_PROTOTYPE
                       name: graphid.0
                       value:
                         host: '{tpl_name}'
                         name: 'Chrony: Source [{{#SOURCE_NAME}}] offset and delay'
+                    - type: STRING
+                      name: reference
+                      value: AAAEI
+                    - type: STRING
+                      name: time_period._reference
+                      value: DASHBOARD._timeperiod
+
+            - name: 'NTP Sources (Peers)'
+              widgets:
+                - type: graphprototype
+                  width: '72'
+                  height: '8'
+                  fields:
+                    - type: INTEGER
+                      name: columns
+                      value: '2'
+                    - type: GRAPH_PROTOTYPE
+                      name: graphid.0
+                      value:
+                        host: '{tpl_name}'
+                        name: 'Chrony: Source [{{#SOURCE_NAME}}] offset and delay'
+                    - type: STRING
+                      name: reference
+                      value: AAAEJ
+                    - type: STRING
+                      name: time_period._reference
+                      value: DASHBOARD._timeperiod
 
       macros:
         - macro: '{{$CHRONY.OFFSET.WARN}}'
@@ -916,6 +1082,19 @@ def generate_yaml(active: bool = False) -> str:
           item:
             host: '{tpl_name}'
             key: chrony.tracking.skew_ppm
+
+    - uuid: {get_uuid(f'{mode}:graph:sources_count')}
+      name: 'Chrony: NTP sources count'
+      graph_items:
+        - color: 2774A4
+          item:
+            host: '{tpl_name}'
+            key: chrony.sources.total_count
+        - sortorder: '1'
+          color: 199C0D
+          item:
+            host: '{tpl_name}'
+            key: chrony.sources.synced_count
 """
     return out
 
