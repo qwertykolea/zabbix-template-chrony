@@ -874,7 +874,7 @@ def generate_yaml(active: bool = False) -> str:
                       value: '2'
                     - type: INTEGER
                       name: value_size
-                      value: '20'
+                      value: '15'
                     - type: STRING
                       name: reference
                       value: AAAEA
