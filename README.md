@@ -13,19 +13,17 @@ Features the **Master + Dependent Items** pattern, raw CSV output parsing via na
 
 ---
 
-## 🚀 Key Advantages
+## 🚀 Key Features
 
-| Feature | This Suite | Typical Internet Templates |
-| :--- | :--- | :--- |
-| **`chronyc` Execution Frequency** | **Only 2 calls per minute** (`tracking` & `sources`) | 10–15 separate subshell forks every minute |
-| **External Shell Scripts** | **0 (Zero-script)**. Single `.conf` file in agent | 2–3 bash/awk/sed scripts in `/usr/local/bin` |
-| **OS Locale / Language Dependency**| **None**. Uses `-c` flag for pure CSV output | **High** (fragile English text parsing with `awk`) |
-| **Pure NTP Client Support** | **100%**. No server sockets or clients required | Fails on clients by expecting UDP 323 & connected clients |
-| **Agent Modes Supported** | **Dual Templates**: Passive and Active included | Only a single hard-coded mode |
-| **Upstream Sources Discovery (LLD)**| **Automated (LLD)** for every configured peer | Static metrics or not implemented |
-| **Built-in Template Dashboard** | **Native Zabbix 7.0/7.4 Dashboard** with KPI cards & graphs | Absent |
-| **Grafana Integration** | **Ready-to-use JSON** for Zabbix plugin | Absent |
-| **Triggers & Anti-flapping** | Multi-level thresholds with restart dependencies | Absent or basic without dependencies |
+* **Minimal System Overhead**: Only 2 `chronyc` queries per minute (`tracking` and `sources`) polled as single-line CSV data. Zero CPU/disk spikes.
+* **Zero External Shell Scripts**: 100% self-contained configuration in a single 2-line `.conf` file inside Zabbix Agent 2 (`/etc/zabbix/zabbix_agent2.d/chrony.conf`).
+* **Locale-Independent Native Preprocessing**: Raw CSV data parsed in-memory using Zabbix JavaScript and JSONPath engines. No fragile English-text regex or awk/sed dependencies.
+* **Pure NTP Client & Server Support**: Monitors both pure client-only endpoints (workstations, VMs) and full NTP servers without expecting open UDP 323 sockets or connected peers.
+* **Dual Architecture Templates**: Fully maintained deterministic templates for both **Passive** (Zabbix Server polling) and **Active** (Agent pushing through NAT/firewalls).
+* **Automated Peer Discovery (LLD)**: Dynamically discovers every configured upstream NTP source, tracking individual offset, delay, dispersion margin, reachability, and stratum.
+* **Production-Grade Alerting & Triggers**: Multi-level warning and critical thresholds with daemon crash dependencies, leap second detection, and false-ticker isolation.
+* **Native Multi-Page Zabbix Dashboard**: Modern dark-mode dashboard with KPI cards, multi-row peer graph grids, and time-range synchronization (`DASHBOARD._timeperiod`).
+* **Grafana Dashboard Included**: Ready-to-import JSON dashboard optimized for the official Zabbix plugin.
 
 ---
 
@@ -112,24 +110,70 @@ sudo ./install.sh
 ## 📊 Monitored Metrics
 
 ### 1. System Synchronization Metrics (Tracking)
-* `Chrony: Service process state` — daemon process status (`proc.num[chronyd]`).
-* `Chrony: System time offset` — local system clock offset from the reference source in seconds (`s`, float).
-* `Chrony: System time offset (display)` — human-readable formatted offset with automatic unit scaling (`µs`, `ms`, `s`) for notifications and widgets.
-* `Chrony: RMS offset` — long-term root mean square average of the offset (`s`).
-* `Chrony: Last offset` — estimated local clock offset during the latest measurement (`s`).
-* `Chrony: Stratum` — current NTP stratum level of the synchronized upstream source.
-* `Chrony: Leap status` — leap second and synchronization status with Value Map:
-  * `0` — Normal (clock is synchronized properly);
-  * `1` — Insert second;
-  * `2` — Delete second;
-  * `3` — Not synchronised (loss of time sync).
-* `Chrony: Root delay` — network round-trip delay to the stratum-1 reference clock (`s`).
-* `Chrony: Root dispersion` — maximum estimated error accumulation (`s`).
-* `Chrony: Frequency` — local oscillator frequency drift rate in parts per million (`ppm`).
-* `Chrony: Residual frequency` — residual frequency offset (`ppm`).
-* `Chrony: Skew` — estimated error bound on frequency in `ppm`.
-* `Chrony: Update interval` — interval between the last two clock updates in seconds (`s`).
-* `Chrony: Reference source IP` — IP address or identifier of the active upstream reference server.
+
+* **`Chrony: Service process state` (`proc.num[chronyd]`)**  
+  * **Description**: Verifies that the `chronyd` background daemon process is alive and running.
+  * **Values**: `1` = Running, `0` = Stopped / Crashed.
+  * **Critical threshold**: `0` immediately raises a **High** severity alert, silencing downstream false-positive alarms.
+
+* **`Chrony: System time offset` (`chrony.tracking.offset.system`)**  
+  * **Description**: The time difference between the local Linux system clock and the reference time source.
+  * **Units**: Seconds (`s`, float). Positive (`+`) means local clock is fast; negative (`-`) means local clock is slow.
+  * **Values & Health Ranges**:
+    * **Optimal ($\pm 0$ to $\pm 1$ ms / $< 0.001$ s)**: Data-center grade synchronization (sub-millisecond / microsecond precision).
+    * **Acceptable (up to $\pm 10$–$20$ ms)**: Normal for cloud VMs and servers over the public internet.
+    * **Warning ($> 100$ ms / $> 0.1$ s for 3+ min)**: Exceeds `{$CHRONY.OFFSET.WARN}`. Risks replication lag in databases (PostgreSQL, MySQL, ClickHouse) and cluster coordination issues (Kubernetes, etcd, Ceph).
+    * **Critical ($> 500$ ms / $> 0.5$ s)**: Exceeds `{$CHRONY.OFFSET.CRIT}`. Causes authentication failures (Kerberos, OAuth2 JWT tokens), TOTP two-factor desync, and TLS handshake rejections.
+
+* **`Chrony: System time offset (display)` (`chrony.tracking.offset.system.display`)**  
+  * **Description**: Preprocessed human-readable string representation of the system offset with automatic unit scaling (`ns`, `µs`, `ms`, `s`) for clean UI display and notification webhooks.
+
+* **`Chrony: Stratum` (`chrony.tracking.stratum`)**  
+  * **Description**: The hierarchy depth / distance from the server to the primary reference clock source.
+  * **Values (0 to 16)**:
+    * `Stratum 0`: Physical atomic clocks, GPS, GLONASS, or PPS sources (not directly network-addressable).
+    * `Stratum 1`: Primary time servers directly connected to Stratum 0 hardware.
+    * `Stratum 2`: Secondary servers synchronized to Stratum 1 across the network (e.g. Cloudflare, Google, NTP Pool).
+    * `Stratum 3`: Standard production client servers synchronized to Stratum 2 pools (the expected healthy state for 99% of servers).
+    * `Stratum 4–5`: Acceptable within private enterprise networks or behind local NTP proxies.
+    * `Stratum >= 5` (Warning): Triggers when degraded for 15+ minutes, signaling unreliable upstream chains.
+    * `Stratum 16` (or `0`) (**Critical**): Standard NTP code for **Unsynchronized** (the host has lost all authoritative time).
+
+* **`Chrony: Leap status` (`chrony.tracking.leap_status`)**  
+  * **Description**: Status of impending UTC leap second adjustments and master synchronization lock.
+  * **Values**:
+    * `0 — Normal`: Healthy sync; no leap second pending.
+    * `1 — Insert second`: Upstream servers announced a positive leap second (`23:59:60`) at the end of the day (triggers **Info** alert to verify DB leap-smear readiness).
+    * `2 — Delete second`: Theoretical negative leap second adjustment.
+    * `3 — Not synchronised` (**Critical**): Chrony has lost connection to all upstream peers or discarded them; clock is freely drifting.
+
+* **`Chrony: RMS offset` (`chrony.tracking.offset.rms`)**  
+  * **Description**: Long-term root mean square average of the clock offset. Provides a stable, smoothed view of clock accuracy over time, filtering out transient network spikes.
+
+* **`Chrony: Last offset` (`chrony.tracking.offset.last`)**  
+  * **Description**: Estimated local clock offset calculated during the single most recent NTP measurement sample.
+
+* **`Chrony: Root delay` (`chrony.tracking.root_delay`)**  
+  * **Description**: Total network round-trip delay accumulated along the path to the stratum-1 reference clock.
+
+* **`Chrony: Root dispersion` (`chrony.tracking.root_dispersion`)**  
+  * **Description**: Cumulative maximum error dispersion to the primary clock source.
+  * **Warning threshold**: Values $> 100$ ms for 5+ min trigger a Warning, indicating degraded network path quality or excessive bufferbloat.
+
+* **`Chrony: Frequency` (`chrony.tracking.freq_ppm`)**  
+  * **Description**: Rate by which the local system clock hardware oscillator gains or loses time relative to the reference source, expressed in parts per million (`ppm`).
+
+* **`Chrony: Residual frequency` (`chrony.tracking.residual_freq`)**  
+  * **Description**: Residual frequency difference between the current clock rate and the reference rate (`ppm`). Close to 0 under steady state.
+
+* **`Chrony: Skew` (`chrony.tracking.skew_ppm`)**  
+  * **Description**: Estimated error bound on the local clock frequency in `ppm`. Lower values reflect higher oscillator stability.
+
+* **`Chrony: Update interval` (`chrony.tracking.update_interval`)**  
+  * **Description**: Elapsed time between the last two successive clock adjustments in seconds.
+
+* **`Chrony: Reference source IP` (`chrony.tracking.ref_ip`)**  
+  * **Description**: IP address or identifier of the active upstream reference server. Monitored for flapping (> 5 switches/hour triggers an Info notice).
 
 ### 2. Sources Summary Metrics
 * `Chrony: Configured sources count` — total count of NTP sources discovered in Chrony.
