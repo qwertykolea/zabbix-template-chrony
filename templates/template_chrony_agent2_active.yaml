@@ -140,6 +140,40 @@ zabbix_export:
                 - tag: scope
                   value: availability
 
+        - uuid: 843e036beeab44d1a7423757e7965458
+          name: 'Chrony: System time offset (display)'
+          type: DEPENDENT
+          key: chrony.tracking.offset.system.display
+          delay: '0'
+          history: 7d
+          trends: '0'
+          value_type: CHAR
+          description: 'Formatted human-readable local system clock offset with automatic units (µs, ms, s).'
+          master_item:
+            key: chrony.tracking.json
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.system_time_offset'
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var off = parseFloat(value);
+                  var abs = Math.abs(off);
+                  var sign = off < 0 ? '-' : '+';
+                  if (abs < 0.000001) {
+                      return sign + (abs * 1e6).toFixed(3) + ' µs';
+                  } else if (abs < 0.001) {
+                      return sign + (abs * 1e6).toFixed(2) + ' µs';
+                  } else if (abs < 1.0) {
+                      return sign + (abs * 1000).toFixed(3) + ' ms';
+                  } else {
+                      return sign + abs.toFixed(3) + ' s';
+                  }
+          tags:
+            - tag: component
+              value: ntp
+
         - uuid: e2e5e7f7dd6c450c98a824691e8803b6
           name: 'Chrony: RMS offset'
           type: DEPENDENT
@@ -207,6 +241,17 @@ zabbix_export:
               tags:
                 - tag: scope
                   value: availability
+            - uuid: 7b316ba520d14d1c8b0352b66b281094
+              expression: 'min(/Chrony by Zabbix agent 2 active/chrony.tracking.stratum,15m)>=5 and last(/Chrony by Zabbix agent 2 active/chrony.tracking.stratum)<16'
+              name: 'Chrony: NTP stratum increased (Stratum >= 5)'
+              priority: WARNING
+              description: 'NTP Stratum level has degraded to 5 or higher for at least 15 minutes. Upstream reference time quality is low.'
+              dependencies:
+                - name: 'Chrony: Service process is not running'
+                  expression: 'last(/Chrony by Zabbix agent 2 active/proc.num[chronyd])=0'
+              tags:
+                - tag: scope
+                  value: performance
 
         - uuid: 4ad66f58d9b74e428c53a42e76289012
           name: 'Chrony: Leap status'
@@ -239,6 +284,18 @@ zabbix_export:
               tags:
                 - tag: scope
                   value: availability
+            - uuid: 9f211fbed849437eb103e04de9c54157
+              expression: 'last(/Chrony by Zabbix agent 2 active/chrony.tracking.leap_status)=1 or last(/Chrony by Zabbix agent 2 active/chrony.tracking.leap_status)=2'
+              name: 'Chrony: Leap second announcement detected'
+              priority: INFO
+              manual_close: 'YES'
+              description: 'An upcoming leap second insertion or deletion has been announced by upstream NTP servers.'
+              dependencies:
+                - name: 'Chrony: Service process is not running'
+                  expression: 'last(/Chrony by Zabbix agent 2 active/proc.num[chronyd])=0'
+              tags:
+                - tag: scope
+                  value: notice
 
         - uuid: 35b53e23585a4022a984564715d4c771
           name: 'Chrony: Root delay'
@@ -509,6 +566,17 @@ zabbix_export:
               tags:
                 - tag: scope
                   value: notice
+            - uuid: f768adfa4201409b8847116ed9e0fddc
+              expression: 'max(/Chrony by Zabbix agent 2 active/chrony.sources.synced_count,10m)=0'
+              name: 'Chrony: No synchronized NTP sources available'
+              priority: HIGH
+              description: 'Chrony has had no synchronized or candidate NTP sources (* or +) for at least 10 minutes.'
+              dependencies:
+                - name: 'Chrony: Service process is not running'
+                  expression: 'last(/Chrony by Zabbix agent 2 active/proc.num[chronyd])=0'
+              tags:
+                - tag: scope
+                  value: availability
 
       discovery_rules:
         - uuid: 5fe1a611630443c1973c9ce6a357ae18
@@ -677,6 +745,58 @@ zabbix_export:
                 - tag: source
                   value: '{#SOURCE_NAME}'
 
+            - uuid: 81ad97638b1945cfbeaa0d6662fb3e1b
+              name: 'Chrony: Source [{#SOURCE_NAME}]: Last sample age (last Rx)'
+              type: DEPENDENT
+              key: 'chrony.source.last_rx[{#SOURCE_NAME}]'
+              delay: '0'
+              history: 7d
+              value_type: UNSIGNED
+              units: s
+              description: 'Time in seconds since the last sample was received from this NTP source.'
+              master_item:
+                key: chrony.sources.json
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$.["{#SOURCE_NAME}"].last_rx'
+              tags:
+                - tag: component
+                  value: ntp-source
+                - tag: source
+                  value: '{#SOURCE_NAME}'
+              trigger_prototypes:
+                - uuid: ed3a7ed8643b45b5afbe9f91c31ca9a5
+                  expression: 'min(/Chrony by Zabbix agent 2 active/chrony.source.last_rx[{#SOURCE_NAME}],15m)>3600'
+                  name: 'Chrony: NTP source [{#SOURCE_NAME}] response is delayed (> 1h)'
+                  priority: INFO
+                  manual_close: 'YES'
+                  description: 'No response has been received from this NTP source for more than 1 hour.'
+                  tags:
+                    - tag: component
+                      value: ntp-source
+
+            - uuid: 16614c1ca9134d6a8522c6e86c6913fa
+              name: 'Chrony: Source [{#SOURCE_NAME}]: Margin of error'
+              type: DEPENDENT
+              key: 'chrony.source.margin[{#SOURCE_NAME}]'
+              delay: '0'
+              history: 7d
+              value_type: FLOAT
+              units: s
+              description: 'Estimated margin of error in the last offset measurement from this source.'
+              master_item:
+                key: chrony.sources.json
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$.["{#SOURCE_NAME}"].margin'
+              tags:
+                - tag: component
+                  value: ntp-source
+                - tag: source
+                  value: '{#SOURCE_NAME}'
+
           graph_prototypes:
             - uuid: 6af34d6204a2482eaa677afc4a9fbfd2
               name: 'Chrony: Source [{#SOURCE_NAME}] offset and delay'
@@ -690,6 +810,11 @@ zabbix_export:
                   item:
                     host: 'Chrony by Zabbix agent 2 active'
                     key: 'chrony.source.delay[{#SOURCE_NAME}]'
+                - sortorder: '2'
+                  color: 2774A4
+                  item:
+                    host: 'Chrony by Zabbix agent 2 active'
+                    key: 'chrony.source.margin[{#SOURCE_NAME}]'
 
       dashboards:
         - uuid: c90719c7deb742768fad984dd352eee2
@@ -702,6 +827,9 @@ zabbix_export:
                   width: '18'
                   height: '4'
                   fields:
+                    - type: INTEGER
+                      name: decimal_places
+                      value: '6'
                     - type: ITEM
                       name: itemid.0
                       value:
@@ -919,11 +1047,14 @@ zabbix_export:
                 - type: graphprototype
                   'y': '16'
                   width: '72'
-                  height: '6'
+                  height: '14'
                   fields:
                     - type: INTEGER
                       name: columns
                       value: '2'
+                    - type: INTEGER
+                      name: rows
+                      value: '3'
                     - type: GRAPH_PROTOTYPE
                       name: graphid.0
                       value:
@@ -940,11 +1071,14 @@ zabbix_export:
               widgets:
                 - type: graphprototype
                   width: '72'
-                  height: '8'
+                  height: '24'
                   fields:
                     - type: INTEGER
                       name: columns
                       value: '2'
+                    - type: INTEGER
+                      name: rows
+                      value: '6'
                     - type: GRAPH_PROTOTYPE
                       name: graphid.0
                       value:

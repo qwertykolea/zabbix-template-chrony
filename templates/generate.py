@@ -205,6 +205,40 @@ def generate_yaml(active: bool = False) -> str:
                 - tag: scope
                   value: availability
 
+        - uuid: {get_uuid(f'{mode}:item:chrony.tracking.offset.system.display')}
+          name: 'Chrony: System time offset (display)'
+          type: DEPENDENT
+          key: chrony.tracking.offset.system.display
+          delay: '0'
+          history: 7d
+          trends: '0'
+          value_type: CHAR
+          description: 'Formatted human-readable local system clock offset with automatic units (µs, ms, s).'
+          master_item:
+            key: chrony.tracking.json
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.system_time_offset'
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var off = parseFloat(value);
+                  var abs = Math.abs(off);
+                  var sign = off < 0 ? '-' : '+';
+                  if (abs < 0.000001) {{
+                      return sign + (abs * 1e6).toFixed(3) + ' µs';
+                  }} else if (abs < 0.001) {{
+                      return sign + (abs * 1e6).toFixed(2) + ' µs';
+                  }} else if (abs < 1.0) {{
+                      return sign + (abs * 1000).toFixed(3) + ' ms';
+                  }} else {{
+                      return sign + abs.toFixed(3) + ' s';
+                  }}
+          tags:
+            - tag: component
+              value: ntp
+
         - uuid: {get_uuid(f'{mode}:item:chrony.tracking.offset.rms')}
           name: 'Chrony: RMS offset'
           type: DEPENDENT
@@ -272,6 +306,17 @@ def generate_yaml(active: bool = False) -> str:
               tags:
                 - tag: scope
                   value: availability
+            - uuid: {get_uuid(f'{mode}:trigger:stratum_high')}
+              expression: 'min(/{tpl_name}/chrony.tracking.stratum,15m)>=5 and last(/{tpl_name}/chrony.tracking.stratum)<16'
+              name: 'Chrony: NTP stratum increased (Stratum >= 5)'
+              priority: WARNING
+              description: 'NTP Stratum level has degraded to 5 or higher for at least 15 minutes. Upstream reference time quality is low.'
+              dependencies:
+                - name: 'Chrony: Service process is not running'
+                  expression: 'last(/{tpl_name}/proc.num[chronyd])=0'
+              tags:
+                - tag: scope
+                  value: performance
 
         - uuid: {get_uuid(f'{mode}:item:chrony.tracking.leap_status')}
           name: 'Chrony: Leap status'
@@ -304,6 +349,18 @@ def generate_yaml(active: bool = False) -> str:
               tags:
                 - tag: scope
                   value: availability
+            - uuid: {get_uuid(f'{mode}:trigger:leap_second')}
+              expression: 'last(/{tpl_name}/chrony.tracking.leap_status)=1 or last(/{tpl_name}/chrony.tracking.leap_status)=2'
+              name: 'Chrony: Leap second announcement detected'
+              priority: INFO
+              manual_close: 'YES'
+              description: 'An upcoming leap second insertion or deletion has been announced by upstream NTP servers.'
+              dependencies:
+                - name: 'Chrony: Service process is not running'
+                  expression: 'last(/{tpl_name}/proc.num[chronyd])=0'
+              tags:
+                - tag: scope
+                  value: notice
 
         - uuid: {get_uuid(f'{mode}:item:chrony.tracking.root_delay')}
           name: 'Chrony: Root delay'
@@ -551,6 +608,17 @@ def generate_yaml(active: bool = False) -> str:
               tags:
                 - tag: scope
                   value: notice
+            - uuid: {get_uuid(f'{mode}:trigger:no_synced_sources')}
+              expression: 'max(/{tpl_name}/chrony.sources.synced_count,10m)=0'
+              name: 'Chrony: No synchronized NTP sources available'
+              priority: HIGH
+              description: 'Chrony has had no synchronized or candidate NTP sources (* or +) for at least 10 minutes.'
+              dependencies:
+                - name: 'Chrony: Service process is not running'
+                  expression: 'last(/{tpl_name}/proc.num[chronyd])=0'
+              tags:
+                - tag: scope
+                  value: availability
 
       discovery_rules:
         - uuid: {get_uuid(f'{mode}:discovery:sources')}
@@ -711,6 +779,58 @@ def generate_yaml(active: bool = False) -> str:
                 - tag: source
                   value: '{{#SOURCE_NAME}}'
 
+            - uuid: {get_uuid(f'{mode}:itemproto:last_rx')}
+              name: 'Chrony: Source [{{#SOURCE_NAME}}]: Last sample age (last Rx)'
+              type: DEPENDENT
+              key: 'chrony.source.last_rx[{{#SOURCE_NAME}}]'
+              delay: '0'
+              history: 7d
+              value_type: UNSIGNED
+              units: s
+              description: 'Time in seconds since the last sample was received from this NTP source.'
+              master_item:
+                key: chrony.sources.json
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$.["{{#SOURCE_NAME}}"].last_rx'
+              tags:
+                - tag: component
+                  value: ntp-source
+                - tag: source
+                  value: '{{#SOURCE_NAME}}'
+              trigger_prototypes:
+                - uuid: {get_uuid(f'{mode}:triggerproto:sample_delayed')}
+                  expression: 'min(/{tpl_name}/chrony.source.last_rx[{{#SOURCE_NAME}}],15m)>3600'
+                  name: 'Chrony: NTP source [{{#SOURCE_NAME}}] response is delayed (> 1h)'
+                  priority: INFO
+                  manual_close: 'YES'
+                  description: 'No response has been received from this NTP source for more than 1 hour.'
+                  tags:
+                    - tag: component
+                      value: ntp-source
+
+            - uuid: {get_uuid(f'{mode}:itemproto:margin')}
+              name: 'Chrony: Source [{{#SOURCE_NAME}}]: Margin of error'
+              type: DEPENDENT
+              key: 'chrony.source.margin[{{#SOURCE_NAME}}]'
+              delay: '0'
+              history: 7d
+              value_type: FLOAT
+              units: s
+              description: 'Estimated margin of error in the last offset measurement from this source.'
+              master_item:
+                key: chrony.sources.json
+              preprocessing:
+                - type: JSONPATH
+                  parameters:
+                    - '$.["{{#SOURCE_NAME}}"].margin'
+              tags:
+                - tag: component
+                  value: ntp-source
+                - tag: source
+                  value: '{{#SOURCE_NAME}}'
+
           graph_prototypes:
             - uuid: {get_uuid(f'{mode}:graphproto:metrics')}
               name: 'Chrony: Source [{{#SOURCE_NAME}}] offset and delay'
@@ -724,6 +844,11 @@ def generate_yaml(active: bool = False) -> str:
                   item:
                     host: '{tpl_name}'
                     key: 'chrony.source.delay[{{#SOURCE_NAME}}]'
+                - sortorder: '2'
+                  color: 2774A4
+                  item:
+                    host: '{tpl_name}'
+                    key: 'chrony.source.margin[{{#SOURCE_NAME}}]'
 
       dashboards:
         - uuid: {get_uuid(f'{mode}:dash:overview')}
@@ -736,6 +861,9 @@ def generate_yaml(active: bool = False) -> str:
                   width: '18'
                   height: '4'
                   fields:
+                    - type: INTEGER
+                      name: decimal_places
+                      value: '6'
                     - type: ITEM
                       name: itemid.0
                       value:
@@ -953,11 +1081,14 @@ def generate_yaml(active: bool = False) -> str:
                 - type: graphprototype
                   'y': '16'
                   width: '72'
-                  height: '6'
+                  height: '14'
                   fields:
                     - type: INTEGER
                       name: columns
                       value: '2'
+                    - type: INTEGER
+                      name: rows
+                      value: '3'
                     - type: GRAPH_PROTOTYPE
                       name: graphid.0
                       value:
@@ -974,11 +1105,14 @@ def generate_yaml(active: bool = False) -> str:
               widgets:
                 - type: graphprototype
                   width: '72'
-                  height: '8'
+                  height: '24'
                   fields:
                     - type: INTEGER
                       name: columns
                       value: '2'
+                    - type: INTEGER
+                      name: rows
+                      value: '6'
                     - type: GRAPH_PROTOTYPE
                       name: graphid.0
                       value:

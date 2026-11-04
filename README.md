@@ -113,7 +113,8 @@ sudo ./install.sh
 
 ### 1. System Synchronization Metrics (Tracking)
 * `Chrony: Service process state` — daemon process status (`proc.num[chronyd]`).
-* `Chrony: System time offset` — local system clock offset from the reference source in seconds (`s`).
+* `Chrony: System time offset` — local system clock offset from the reference source in seconds (`s`, float).
+* `Chrony: System time offset (display)` — human-readable formatted offset with automatic unit scaling (`µs`, `ms`, `s`) for notifications and widgets.
 * `Chrony: RMS offset` — long-term root mean square average of the offset (`s`).
 * `Chrony: Last offset` — estimated local clock offset during the latest measurement (`s`).
 * `Chrony: Stratum` — current NTP stratum level of the synchronized upstream source.
@@ -141,6 +142,8 @@ Zabbix automatically discovers each configured upstream NTP source and tracks:
 * `Chrony: Source [{#SOURCE_NAME}]: Reachability register` — 8-bit reachability register converted from octal to decimal (`255` = 100% reachability across last 8 queries, `0` = completely unreachable).
 * `Chrony: Source [{#SOURCE_NAME}]: Last sample offset` — estimated offset relative to this source (`s`).
 * `Chrony: Source [{#SOURCE_NAME}]: Root distance / delay` — network round-trip distance to this source (`s`).
+* `Chrony: Source [{#SOURCE_NAME}]: Margin of error` — estimated dispersion bound / error margin of the offset measurement (`s`).
+* `Chrony: Source [{#SOURCE_NAME}]: Last sample age (last Rx)` — time in seconds since the last packet was received (`s`).
 * `Chrony: Source [{#SOURCE_NAME}]: Poll interval` — polling interval expressed as log2 seconds.
 
 ---
@@ -152,13 +155,17 @@ Zabbix automatically discovers each configured upstream NTP source and tracks:
 | **High** | `Chrony: Service process is not running` | `last(proc.num[chronyd])=0` | The `chronyd` background service is stopped or crashed. |
 | **High** | `Chrony: Host is not synchronised with NTP` | `last(chrony.tracking.leap_status)=3` | Leap status is unsynchronized (depends on service running). |
 | **High** | `Chrony: Stratum is invalid (0 or >= 16)` | `stratum=0 or stratum>=16` | Upstream stratum indicates unsynchronized state (depends on service running). |
+| **High** | `Chrony: No synchronized NTP sources available` | `max(synced_count, 10m)=0` | No NTP sources in active peered (`*`) or candidate (`+`) state for 10 minutes. |
 | **Warning** | `Chrony: Clock offset is excessive (> 100ms)` | `min(offset, 3m) > 0.1s or max(offset, 3m) < -0.1s` | Clock offset exceeds 100ms for over 3 minutes (filters network spikes). |
 | **High** | `Chrony: Clock offset is critical (> 500ms)` | `last(offset) > 0.5s or last(offset) < -0.5s` | Critical clock drift beyond 500ms (depends on warning trigger). |
 | **Warning** | `Chrony: Root dispersion is excessive (> 100ms)` | `min(root_dispersion, 5m) > 0.1s` | Root dispersion exceeds `{$CHRONY.DISPERSION.WARN}` for 5 minutes. Early warning of degraded network path quality to NTP servers. |
+| **Warning** | `Chrony: NTP stratum increased (Stratum >= 5)` | `min(stratum, 15m)>=5 and last(stratum)<16` | Upstream time synchronization stratum has degraded to 5 or higher for 15 minutes. |
+| **Info** | `Chrony: Leap second announcement detected` | `leap_status=1 or leap_status=2` | Upstream NTP servers announced an impending positive or negative leap second insertion. |
 | **Info** | `Chrony: Active reference source is flapping` | `changecount(ref_ip, 1h) > 5` | Active upstream reference peer switched more than 5 times in 1 hour. Indicates routing instability or network jitter. |
 | **Warning (Disabled by default)** | `Chrony: Low number of synchronized NTP sources (< 2)` | `last(synced_count) < 2` | Active synchronized sources count dropped below threshold. Can be enabled in Zabbix UI. |
 | **Warning (Prototype)** | `Chrony: NTP source [{#SOURCE_NAME}] is flagged as false ticker` | `last(state)="x"` | Chrony identified this source as providing invalid or contradictory time. |
 | **Info (Prototype)** | `Chrony: NTP source [{#SOURCE_NAME}] is unreachable` | `last(reach)=0` | Last 8 consecutive polling attempts to this source failed. |
+| **Info (Prototype)** | `Chrony: NTP source [{#SOURCE_NAME}] response is delayed (> 1h)` | `min(last_rx, 15m) > 3600` | No NTP responses received from this peer for more than 1 hour. |
 
 ### User Macros (Customizable Thresholds):
 You can override thresholds at the template level or per-host level:
@@ -176,7 +183,7 @@ The template features a native, modernized multi-page dashboard **Chrony NTP ove
 
 * **Page 1: Overview**
   * **Modern KPI Value Cards**: Clean, uncluttered value indicators with custom typography and real-time threshold coloring:
-    * `System time offset`: Color-coded thresholds (`green` < 50ms, `yellow` >= 50ms, `red` >= 100ms) with 4-decimal precision;
+    * `System time offset`: Formatted with 6-decimal precision (`-0.000519 ms`) completely eliminating exponential scientific notation while retaining live status color thresholds (`green` < 50ms, `yellow` >= 50ms, `red` >= 100ms);
     * `Reference source IP`: Full non-truncated IPv4 address display with generous horizontal margin;
     * `Stratum`: Integer formatting (`3` instead of `3.00`) with color-coded health thresholds (`green` 1–3, `yellow` 4–9, `red` 16);
     * `Leap status`: Clean status label (`Normal`, `Insert second`, `Not synchronised`) without clipping or truncated text.
@@ -184,10 +191,10 @@ The template features a native, modernized multi-page dashboard **Chrony NTP ove
   * **Root Delay & Dispersion Graph**: Network latency and accumulated error bounds to upstream reference clocks.
   * **Frequency & Skew Graph**: Local crystal oscillator frequency drift (ppm) and stability bounds.
   * **NTP Sources Count Graph**: Configured vs. active synchronized sources count over time.
-  * **Discovered NTP Sources Grid**: Full-width 2-column prototype graphs displaying offset and delay for each discovered peer.
+  * **Discovered NTP Sources Grid**: 2-column, 3-row prototype graphs displaying offset, delay, and margin of error for up to 6 discovered peers.
 
 * **Page 2: NTP Sources (Peers)**
-  * Dedicated multi-peer analysis tab with wide, high-resolution graph prototypes for all discovered upstream servers, fully synchronized with the global dashboard time selector (`DASHBOARD._timeperiod`).
+  * Dedicated multi-peer analysis tab configured with a generous 6-row × 2-column layout (up to 12 simultaneous peer graphs without pagination) and 24-unit height, ensuring all upstream servers are rendered simultaneously and synchronized with the dashboard time period selector (`DASHBOARD._timeperiod`). Each graph tracks **Offset** (Green), **Delay** (Red), and **Margin of error** (Blue).
 
 ### 2. Standalone Grafana Dashboard
 For teams utilizing Grafana with the official **Zabbix plugin** (`alexanderzobnin-zabbix-datasource`), a ready-to-import JSON dashboard is provided in [`dashboards/grafana/`](dashboards/grafana/):
