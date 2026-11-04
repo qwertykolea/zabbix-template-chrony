@@ -1,6 +1,6 @@
 # Chrony NTP Grafana Dashboard
 
-This directory contains a pre-built Grafana dashboard designed for the **Zabbix Chrony Monitoring Template**. It leverages the official [Zabbix plugin for Grafana](https://grafana.com/grafana/plugins/alexanderzobnin-zabbix-datasource/) (`alexanderzobnin-zabbix-datasource`).
+This directory contains a pre-built Grafana dashboard designed for the **Zabbix Chrony Monitoring Template**. It leverages the official **Zabbix plugin for Grafana** (`alexanderzobnin-zabbix-datasource`).
 
 ## Features
 

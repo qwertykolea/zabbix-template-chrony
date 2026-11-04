@@ -180,7 +180,7 @@ The template includes an integrated native dashboard **Chrony NTP overview**, ac
 * **Source Graph Prototype**: Dynamic sub-graphs auto-instantiated for every discovered NTP peer.
 
 ### 2. Standalone Grafana Dashboard
-For teams utilizing Grafana with the official [Zabbix datasource plugin](https://grafana.com/grafana/plugins/alexanderzobnin-zabbix-datasource/), a ready-to-import JSON dashboard is provided in [`dashboards/grafana/`](dashboards/grafana/):
+For teams utilizing Grafana with the official **Zabbix plugin** (`alexanderzobnin-zabbix-datasource`), a ready-to-import JSON dashboard is provided in [`dashboards/grafana/`](dashboards/grafana/):
 * Dynamic dropdown selectors for Host Group and Host.
 * Polished stat cards and multi-series timeseries graphs.
 * See the [Grafana Setup Guide](dashboards/grafana/README.md) for quick import instructions.

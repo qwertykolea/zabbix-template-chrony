@@ -1,6 +1,6 @@
 # Дашборд Grafana для Chrony NTP
 
-В этой директории находится готовый дашборд Grafana для шаблона мониторинга **Chrony NTP в Zabbix Agent 2**. Дашборд работает через официальный [плагин Zabbix для Grafana](https://grafana.com/grafana/plugins/alexanderzobnin-zabbix-datasource/) (`alexanderzobnin-zabbix-datasource`).
+В этой директории находится готовый дашборд Grafana для шаблона мониторинга **Chrony NTP в Zabbix Agent 2**. Дашборд работает через официальный **плагин Zabbix для Grafana** (`alexanderzobnin-zabbix-datasource`).
 
 ## Возможности
 

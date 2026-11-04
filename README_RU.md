@@ -178,7 +178,7 @@ Zabbix автоматически обнаруживает каждый апст
 * **Прототип графиков для LLD-источников**: автоматическое создание графиков смещения и задержки для каждого обнаруженного сервера.
 
 ### 2. Готовый дашборд для Grafana
-Для тех, кто использует Grafana с официальным [плагином Zabbix](https://grafana.com/grafana/plugins/alexanderzobnin-zabbix-datasource/), в папке [`dashboards/grafana/`](dashboards/grafana/) подготовлен файл экспорта:
+Для тех, кто использует Grafana с официальным **плагином Zabbix** (`alexanderzobnin-zabbix-datasource`), в папке [`dashboards/grafana/`](dashboards/grafana/) подготовлен файл экспорта:
 * Выпадающие списки выбора группы узлов и конкретного узла сети.
 * Подробные графики и карточки ключевых метрик.
 * Инструкция по импорту находится в [руководстве по Grafana](dashboards/grafana/README_RU.md).
