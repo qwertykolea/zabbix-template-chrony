@@ -451,7 +451,7 @@ def generate_yaml(active: bool = False) -> str:
               value: ntp
           triggers:
             - uuid: {get_uuid(f'{mode}:trigger:peer_flapping')}
-              expression: 'changes(/{tpl_name}/chrony.tracking.ref_ip,1h)>5'
+              expression: 'changecount(/{tpl_name}/chrony.tracking.ref_ip,1h)>5'
               name: 'Chrony: Active reference source is flapping'
               priority: INFO
               manual_close: 'YES'

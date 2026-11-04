@@ -153,7 +153,7 @@ Zabbix автоматически обнаруживает каждый апст
 | **Warning** | `Chrony: Clock offset is excessive (> 100ms)` | `min(offset, 3m) > 0.1s or max(offset, 3m) < -0.1s` | Дрейф времени превышает 100 мс на протяжении более 3 минут (сглаживание сетевых пиков). |
 | **High** | `Chrony: Clock offset is critical (> 500ms)` | `last(offset) > 0.5s or last(offset) < -0.5s` | Критическое расхождение времени. Зависит от предупреждающего триггера. |
 | **Warning** | `Chrony: Root dispersion is excessive (> 100ms)` | `min(root_dispersion, 5m) > 0.1s` | Расчетная погрешность дисперсии превышает `{$CHRONY.DISPERSION.WARN}` на протяжении 5 минут. Ранний признак деградации сетевого маршрута. |
-| **Info** | `Chrony: Active reference source is flapping` | `changes(ref_ip, 1h) > 5` | Активный сервер времени сменился более 5 раз за последний час. Признак нестабильности сетевого пути или джиттера. |
+| **Info** | `Chrony: Active reference source is flapping` | `changecount(ref_ip, 1h) > 5` | Активный сервер времени сменился более 5 раз за последний час. Признак нестабильности сетевого пути или джиттера. |
 | **Warning (Отключен по умолчанию)** | `Chrony: Low number of synchronized NTP sources (< 2)` | `last(synced_count) < 2` | Число активных синхронизированных источников упало ниже порога. Можно включить в интерфейсе Zabbix. |
 | **Warning (Прототип)** | `Chrony: NTP source [{#SOURCE_NAME}] is flagged as false ticker` | `last(state)="x"` | Chrony выявил, что данный сервер передает недостоверное время. |
 | **Info (Прототип)** | `Chrony: NTP source [{#SOURCE_NAME}] is unreachable` | `last(reach)=0` | Все 8 последних попыток связаться с источником завершились неудачей. |

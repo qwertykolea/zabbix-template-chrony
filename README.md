@@ -155,7 +155,7 @@ Zabbix automatically discovers each configured upstream NTP source and tracks:
 | **Warning** | `Chrony: Clock offset is excessive (> 100ms)` | `min(offset, 3m) > 0.1s or max(offset, 3m) < -0.1s` | Clock offset exceeds 100ms for over 3 minutes (filters network spikes). |
 | **High** | `Chrony: Clock offset is critical (> 500ms)` | `last(offset) > 0.5s or last(offset) < -0.5s` | Critical clock drift beyond 500ms (depends on warning trigger). |
 | **Warning** | `Chrony: Root dispersion is excessive (> 100ms)` | `min(root_dispersion, 5m) > 0.1s` | Root dispersion exceeds `{$CHRONY.DISPERSION.WARN}` for 5 minutes. Early warning of degraded network path quality to NTP servers. |
-| **Info** | `Chrony: Active reference source is flapping` | `changes(ref_ip, 1h) > 5` | Active upstream reference peer switched more than 5 times in 1 hour. Indicates routing instability or network jitter. |
+| **Info** | `Chrony: Active reference source is flapping` | `changecount(ref_ip, 1h) > 5` | Active upstream reference peer switched more than 5 times in 1 hour. Indicates routing instability or network jitter. |
 | **Warning (Disabled by default)** | `Chrony: Low number of synchronized NTP sources (< 2)` | `last(synced_count) < 2` | Active synchronized sources count dropped below threshold. Can be enabled in Zabbix UI. |
 | **Warning (Prototype)** | `Chrony: NTP source [{#SOURCE_NAME}] is flagged as false ticker` | `last(state)="x"` | Chrony identified this source as providing invalid or contradictory time. |
 | **Info (Prototype)** | `Chrony: NTP source [{#SOURCE_NAME}] is unreachable` | `last(reach)=0` | Last 8 consecutive polling attempts to this source failed. |

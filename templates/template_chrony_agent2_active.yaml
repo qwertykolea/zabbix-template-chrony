@@ -386,7 +386,7 @@ zabbix_export:
               value: ntp
           triggers:
             - uuid: 6e11eafc25c74fbb95785a7b37c1bd06
-              expression: 'changes(/Chrony by Zabbix agent 2 active/chrony.tracking.ref_ip,1h)>5'
+              expression: 'changecount(/Chrony by Zabbix agent 2 active/chrony.tracking.ref_ip,1h)>5'
               name: 'Chrony: Active reference source is flapping'
               priority: INFO
               manual_close: 'YES'
