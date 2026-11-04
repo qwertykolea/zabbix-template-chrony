@@ -1089,7 +1089,7 @@ def generate_yaml(active: bool = False) -> str:
         - color: 2774A4
           item:
             host: '{tpl_name}'
-            key: chrony.sources.total_count
+            key: chrony.sources.count
         - sortorder: '1'
           color: 199C0D
           item:

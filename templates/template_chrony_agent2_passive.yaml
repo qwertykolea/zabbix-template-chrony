@@ -1052,7 +1052,7 @@ zabbix_export:
         - color: 2774A4
           item:
             host: 'Chrony by Zabbix agent 2'
-            key: chrony.sources.total_count
+            key: chrony.sources.count
         - sortorder: '1'
           color: 199C0D
           item:
