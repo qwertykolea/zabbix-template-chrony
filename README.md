@@ -242,7 +242,11 @@ The template features a native, modernized multi-page dashboard **Chrony NTP ove
   ![Zabbix Chrony NTP Sources Dashboard](docs/img/zabbix_dashboard_sources.png)
   * Dedicated multi-peer analysis tab configured with a generous 6-row × 2-column layout (up to 12 simultaneous peer graphs without pagination) and 24-unit height, ensuring all upstream servers are rendered simultaneously and synchronized with the dashboard time period selector (`DASHBOARD._timeperiod`). Each graph tracks **Offset** (Green), **Delay** (Red), and **Margin of error** (Blue).
 
-### 2. Standalone Grafana Dashboard
+### 2. Latest Data View (Zabbix Web UI)
+![Zabbix Chrony Latest Data](docs/img/zabbix_latest_data.png)
+All metrics are logically grouped and tagged with `component: ntp` (daemon health and core tracking statistics) and `component: ntp-source` (individual peer metrics with dynamic `source: <ip>` tags), allowing instant filtering, inspection, and ad-hoc graph creation in Zabbix **Monitoring → Latest data**.
+
+### 3. Standalone Grafana Dashboard
 For teams utilizing Grafana with the official **Zabbix plugin** (`alexanderzobnin-zabbix-datasource`), a ready-to-import JSON dashboard is provided in [`dashboards/grafana/`](dashboards/grafana/):
 * Dynamic dropdown selectors for Host Group and Host.
 * Polished stat cards and multi-series timeseries graphs.
